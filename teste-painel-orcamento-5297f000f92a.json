@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "teste-painel-orcamento",
+  "private_key_id": "5297f000f92ae0a7113b977d377db12374a5e5dd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDOIdbQ8EOb4EUl\nO7NbGA9N9RpLIjqh+5FFM38pOHf70h0VXumFen8eufC48YkBDviUPzMXjNqUeMP1\nY5nxSSMpX5pPnYlFZC/JeQ6hEO4PGo+AZ48uCvnyK3igbJalVdVlkSG3F9rEJ+sf\nPMgD+UrPw5P+GvOYQQFzhJMIhKxbgDd0qe+y7nq4RJNfOU9ieOIL+8oC66CZWG7G\nv+islT2Q9ovrk9v7jFs/tWnu4LkPB8aq6rCWKLUrDnwE9zppyyYm711IWRAAzeN8\nZxgCQgG9iWilppizgidPAr6l16W0VavknO5lehUtALbe0x+NXHlP+nn2y15qltw5\ngG1TCFe1AgMBAAECggEACGUOZ5HxXu7CQiLtSf9v2B/sQzUQqDojj2rqedZH5KSI\n9K7Z2crEVI8EA7QqfTWL4BW20fW1jShh6qN0yIPO/8dZ9HYY+g97drwMYXjcCRdu\n0q7lAN4Hkdo9XmMtu2wEdc90TQ2Wpjht9ea2ypqjdlSjuUyFsSSsl3TFvCoTDuLW\nHdgMYIL/4yudQ7eoCFz35rn30YSo2TfWYetE/5qmxoGtJDeXCnuhPHBHNsubvN9X\ntNR6/UOFWUz54e+gf+e5YnnGhevL84YNbBzUI+RreU+Cy8eAIge4T5JJCBnhS6nU\nwIx3VmBbq2oTtzObWYWcLnxLjrUJ2cgUvbLf3C3pIQKBgQD2OHyngYvZ8AJ9GpWN\nNMiwnmYwDpcTxE4dBB3iJBFqYRVWRrVItAg1z+0rjtOkw+AXPL+y4+1w0nOj6QIa\nkZyMYMmcNHwH1vU6TYAa1AzhwI1SoXBkgwXDl5mEfXucXrCYuk8mEQDvFvyWu4ER\nROPvDbS7o2ZxkKVaYSf6hKO3fQKBgQDWUb3/h92N3tiiLYgQD3l+3JJiRsWyJ8AF\n0W/3GldIkrnSYY/mPWFzmggoNiceB+j/HrtEH4bi0QtWDjFRYczVm0H0IlDpJt9h\nU4SmmFU4wqtQf1brbyIZi527OT/MkUrft8JU3LQJbc26iT+WR5yJe30VObo8q7fo\nTfm5x2nGmQKBgQCaPwjYZu+VuCXW+bB2pXqUKqcZtAow9+l3g/y0jqPaYLddNS6c\nPSxnibqqbu9naM4ZwJTXHLLC2xRWusH2owHPb1Ld6INK5f76Z1K5e94WDup5uWkP\njoUt4urpdTLa4vb+triewEg1f9D9HLned6nTOGLgqZyjyFnOJM9GwZFOgQKBgFdD\n72Ylrzu+Gl1mxrkrY+AY9e3YPVU+RDzaO4nVCuc8/za/jPVF1vFYLawZ6LGcrO18\nWOnzIFwonEINA13MwbfUQPWkJ2fX8SrS8/dVnZXABjt/rietF6hpJe9+7xBftKoF\nS7Z8Kz6PnC4xBlgtjnqYcqT63W8oyHhpj55qqRI5AoGBAJTKmY77ni4QtLIDxn0f\n9q9dHTHQDJyMfAVi06H4rBVifRKjngyDqxvMyDzmn6rbBtxaCHE1tcTreCXiMs2+\nUXgZwOcO9Q++uDOK4apT44tIN75x8P4oSMhBhysg0LSKhYRY6TVxhB87viEfctRl\n4MVv+iYHonQARbEgem4DV/Sl\n-----END PRIVATE KEY-----\n",
+  "client_email": "painel-orcamentario@teste-painel-orcamento.iam.gserviceaccount.com",
+  "client_id": "115364276200627556760",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/painel-orcamentario%40teste-painel-orcamento.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
