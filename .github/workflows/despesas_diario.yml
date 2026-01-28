@@ -27,7 +27,7 @@ jobs:
         env:
           API_TOKEN_SOF: ${{ secrets.API_TOKEN_SOF }}
         run: |
-          python painel_orcamentario/despesas.py
+          python despesas.py
 
       - name: Commit dos dados atualizados
         run: |
