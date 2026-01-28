@@ -1,3 +1,5 @@
+print(">>> VERSÃO NOVA DO DESPESAS.PY EM EXECUÇÃO <<<")
+
 import requests
 import pandas as pd
 from itertools import product
