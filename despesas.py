@@ -42,10 +42,23 @@ def main():
     procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
 
     # Função para fazer requisições à API
-    def fazer_requisicao(endpoint, params=None):
-        url = f"{BASE_URL}/{endpoint}"
-        response = requests.get(url, headers=headers, params=params)
-        return response.json()
+    def fazer_requisicao(endpoint, params):
+        response = requests.get(BASE_URL, params=params, headers=headers, timeout=60)
+
+        print(f"Status code: {response.status_code}")
+
+        if response.status_code != 200:
+            print("Resposta bruta da API:")
+            print(response.text[:500])
+            raise Exception("Erro na requisição da API")
+
+        try:
+            return response.json()
+        except ValueError:
+            print("Erro ao decodificar JSON")
+            print(response.text[:500])
+            raise
+
 
     params_dp = {
         "anoDotacao": "",
