@@ -25,7 +25,7 @@ jobs:
 
       - name: Executar despesas.py
         env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
+          API_TOKEN_SOF: ${{ secrets.API_TOKEN_SOF }}
         run: |
           python despesas.py
 
