@@ -19,6 +19,9 @@ def main():
     # Configurações iniciais
     #TOKEN = ""
     TOKEN = os.getenv("API_TOKEN_SF")
+    print("TOKEN carregado?", bool(TOKEN))
+    print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
+
     BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
     # Headers para autenticação
