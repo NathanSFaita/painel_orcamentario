@@ -1,5 +1,3 @@
-#import despesas
-import empenho_v2
 import os
 import pandas as pd
 import numpy as np
@@ -356,7 +354,7 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         [{"label": c, "value": c} for c in colunas_exibir]
     )
 
-app.run(debug=True)
+
 server = app.server
 
 if __name__ == "__main__":

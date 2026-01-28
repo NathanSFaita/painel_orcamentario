@@ -35,9 +35,10 @@ def main():
     orcamento_smdhc = orcamento[orcamento["Cd_Orgao"].isin(orgaos_list)]
     num_linhas = orcamento_smdhc.shape[0]
 
-    procv_acao = pd.read_excel(fr"procv_acoes.xlsx")
-    procv_orgao = pd.read_excel(fr"procv_orgao.xlsx")
-    procv_elemento = pd.read_excel(fr"procv_elemento.xlsx")
+    baseaux_path = os.path.dirname(__file__)
+    procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
+    procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
+    procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
 
     # Função para fazer requisições à API
     def fazer_requisicao(endpoint, params=None):
@@ -252,14 +253,15 @@ def main():
     df_final = df_final.drop_duplicates()
 
     # Antes de salvar, crie a pasta do ano se não existir
-    pasta_ano = fr"base_despesas\{ano}"
+    pasta_ano = os.path.join("base_despesas", ano)
     os.makedirs(pasta_ano, exist_ok=True)
 
     # Agora salve o arquivo normalmente
     df_final.to_excel(
-        fr"{pasta_ano}\despesas_{ano}{mes}.xlsx",
-        index=False
+    os.path.join(pasta_ano, f"despesas_{ano}{mes}.xlsx"),
+    index=False
     )
+
     print(f"Dados salvos em despesas_{ano}{mes}.xlsx")
 
     fim = time.time()
