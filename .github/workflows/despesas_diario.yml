@@ -5,6 +5,9 @@ on:
     - cron: "0 11 * * *"   # TODO dia às 08:00 UTC -3
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   atualizar-despesas:
     runs-on: ubuntu-latest
