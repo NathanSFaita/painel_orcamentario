@@ -1,3 +1,5 @@
+#import despesas
+import empenho_v2
 import os
 import pandas as pd
 import numpy as np
@@ -15,8 +17,9 @@ from datetime import datetime, timedelta
 
 app = Dash(__name__)
 
+
 # Caminho base das pastas
-base_dir = fr"C:\Users\x526325\Documents\GitHub\painel_orcamentario\base_despesas"
+base_dir = fr"base_despesas"
 
 # Lista anos disponíveis (pastas)
 anos_disponiveis = sorted([p for p in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, p))])
@@ -39,9 +42,9 @@ def carrega_base(ano, mes):
     return pd.read_excel(caminho)
 
 # Inicializa com o padrão
-despesas = carrega_base(ano_padrao, mes_padrao)
+base_despesas = carrega_base(ano_padrao, mes_padrao)
 
-def gera_pivot(despesas):
+def gera_pivot(base_despesas):
     colunas = [
         "valOrcadoInicial",
         "valOrcadoAtualizado",
@@ -53,7 +56,7 @@ def gera_pivot(despesas):
         "valReservadoLiquido",
         "data_hora_extracao"
     ]
-    pivot = despesas.pivot_table(
+    pivot = base_despesas.pivot_table(
         index=["orgao", "projeto_atividade", "coordenação", "despesa", "nome_elemento"],   
         values=colunas,
         aggfunc="sum",
@@ -70,7 +73,7 @@ def gera_pivot(despesas):
     pivot["Saldo de Dotação"] = pivot["Saldo de Dotação"].round(2)
     return pivot
 
-pivot = gera_pivot(despesas)
+pivot = gera_pivot(base_despesas)
 
 opcoes_orgao = list(pivot["orgao"].unique())
 opcoes_orgao.append("Todos")
@@ -229,8 +232,8 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
 
     ordem_final = ordem_colunas
 
-    despesas = carrega_base(ano, mes)
-    pivot = gera_pivot(despesas)
+    base_despesas = carrega_base(ano, mes)
+    pivot = gera_pivot(base_despesas)
 
     # Opções dos filtros (sempre baseado nos dados carregados)
     opcoes_orgao = list(pivot["orgao"].unique()) + ["Todos"]
@@ -354,3 +357,8 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     )
 
 app.run(debug=True)
+server = app.server
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8050))
+    app.run_server(host="0.0.0.0", port=port)

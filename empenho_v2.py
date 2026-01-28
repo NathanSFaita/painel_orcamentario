@@ -171,5 +171,5 @@ anexos_expandido = anexos_expandido.add_prefix("anexo_")
 # Junta ao DataFrame original (removendo a coluna "anexos" se quiser)
 df_parcial = pd.concat([df_parcial.drop(columns=["anexos"]), anexos_expandido], axis=1)
 
-df_parcial.to_excel("empenhos_2025.xlsx", index=False)
+df_parcial.to_excel(f"empenhos_{ano}.xlsx", index=False)
 print("feitos os empenhos")

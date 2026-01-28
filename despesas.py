@@ -5,229 +5,271 @@ import time
 from datetime import datetime, timedelta
 import os
 
-inicio = time.time()
-horario_inicio = datetime.now().strftime("%H:%M:%S")
-print("Início da execução:", horario_inicio)
+def main():
+    inicio = time.time()
+    horario_inicio = datetime.now().strftime("%H:%M:%S")
+    print("Início da execução:", horario_inicio)
 
-dt_inicio = datetime.fromtimestamp(inicio)
-ano = str(dt_inicio.year)
-mes = str(dt_inicio.month)
+    dt_inicio = datetime.fromtimestamp(inicio)
+    ano = str(dt_inicio.year)
+    mes = str(dt_inicio.month)
 
-# Configurações iniciais
-TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
-BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
+    # Configurações iniciais
+    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+    BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
-# Headers para autenticação
-headers = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
+    # Headers para autenticação
+    headers = {
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json"
+    }
 
-if dt_inicio.month < 10:
-    mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10
+    if dt_inicio.month < 10:
+        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10
 
-URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
+    URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
 
-orgaos_list = [8, 34, 78, 90]
+    orgaos_list = [8, 34, 78, 90]
 
-orcamento = pd.read_excel(URL_ORC)
-orcamento_smdhc = orcamento[orcamento["Cd_Orgao"].isin(orgaos_list)]
-num_linhas = orcamento_smdhc.shape[0]
+    orcamento = pd.read_excel(URL_ORC)
+    orcamento_smdhc = orcamento[orcamento["Cd_Orgao"].isin(orgaos_list)]
+    num_linhas = orcamento_smdhc.shape[0]
 
-procv_acao = pd.read_excel(fr"C:\Users\x526325\Documents\GitHub\painel_orcamentario\procv_acoes.xlsx")
-procv_orgao = pd.read_excel(fr"C:\Users\x526325\Documents\GitHub\painel_orcamentario\procv_orgao.xlsx")
-procv_elemento = pd.read_excel(fr"C:\Users\x526325\Documents\GitHub\painel_orcamentario\procv_elemento.xlsx")
+    procv_acao = pd.read_excel(fr"procv_acoes.xlsx")
+    procv_orgao = pd.read_excel(fr"procv_orgao.xlsx")
+    procv_elemento = pd.read_excel(fr"procv_elemento.xlsx")
 
-# Função para fazer requisições à API
-def fazer_requisicao(endpoint, params=None):
-    url = f"{BASE_URL}/{endpoint}"
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
+    # Função para fazer requisições à API
+    def fazer_requisicao(endpoint, params=None):
+        url = f"{BASE_URL}/{endpoint}"
+        response = requests.get(url, headers=headers, params=params)
+        return response.json()
 
-params_pa = {
-    "anoExercicio": "2025"
-}
+    params_dp = {
+        "anoDotacao": "",
+        "mesDotacao": "",
+        "codOrgao": "",
+        "codUnidade": "",
+        "codFuncao": "",
+        "codSubFuncao": "",
+        "codPrograma": "",
+        "codProjetoAtividade": "",
+        "codCategoria": "",
+        "codGrupo": "", 
+        "codModalidade": "",
+        "codElemento": "",
+        "codVinculacaoRecurso": ""  
+        # Outros parâmetros podem ser adicionados para filtrar
+    }
 
-params_dp = {
-    "anoDotacao": "",
-    "mesDotacao": "",
-    "codOrgao": "",
-    "codUnidade": "",
-    "codFuncao": "",
-    "codSubFuncao": "",
-    "codPrograma": "",
-    "codProjetoAtividade": "",
-    "codCategoria": "",
-    "codGrupo": "", 
-    "codModalidade": "",
-    "codElemento": "",
-    "codVinculacaoRecurso": ""  
-    # Outros parâmetros podem ser adicionados para filtrar
-}
+    colunas_iniciais = ["cd_orgao", "orgao", "uo", "funcao", "subfuncao", "programa", "projeto_atividade", "coordenação", "despesa", "vinculacao"]
+    df_final = pd.DataFrame(columns=colunas_iniciais)
+    requisicoes = 0
 
-colunas_iniciais = ["cd_orgao", "orgao", "uo", "funcao", "subfuncao", "programa", "projeto_atividade", "coordenação", "despesa", "vinculacao"]
-df_final = pd.DataFrame(columns=colunas_iniciais)
-requisicoes = 0
+    for index, row in orcamento_smdhc.iterrows():
+        orgao = str(row["Cd_Orgao"])
+        if len(orgao) == 1:
+            orgao = "0" + str(orgao)  # Padroniza o órgão para dois dígitos
+        uo = str(row["Cd_Unidade"])
+        funcao = str(row["Cd_Funcao"])
+        if len(funcao) == 1:
+            funcao = "0" + str(funcao)  # Padroniza a função para dois dígitos
+        subfuncao = row["Cd_SubFuncao"]
+        programa = row["Cd_Programa"]
+        proj_ativ = int(row["ProjetoAtividade"])
+        categoria = str(row["Categoria_Despesa"])
+        grupo = str(row["Grupo_Despesa"])
+        modalidade = str(row["Cd_Modalidade"])
+        elemento = str(row["Cd_Elemento"])
+        fonte = str(row["Cd_Fonte"])
+        ds_vinculacao = str(row["TXT_VINC_PMSP"])
+        if len(fonte) < 2:
+            fonte = ("0" * (2 - len(fonte))) + fonte
+        referencia = str(row["COD_EX_FONT_REC"])
+        destinacao = str(row["COD_DSTN_REC"])
+        if len(destinacao) < 3:
+            destinacao = ("0" * (3 - len(destinacao))) + destinacao    
+        vinculacao = str(row["COD_VINC_REC_PMSP"])
+        if len(vinculacao) < 4:
+            vinculacao = ("0" * (4 - len(vinculacao))) + vinculacao
+        params_dp["anoDotacao"] = ano
+        params_dp["mesDotacao"] = mes
+        params_dp["codOrgao"] = orgao
+        params_dp["codUnidade"] = uo
+        params_dp["codFuncao"] = funcao
+        params_dp["codSubFuncao"] = subfuncao
+        params_dp["codPrograma"] = programa
+        params_dp["codProjetoAtividade"] = proj_ativ
+        params_dp["codCategoria"] = categoria
+        params_dp["codGrupo"] = grupo
+        params_dp["codModalidade"] = modalidade
+        params_dp["codElemento"] = elemento
+        params_dp["codFonteRecurso"] = fonte
+        params_dp["codReferencia"] = referencia
+        params_dp["codDestinacaoRecurso"] = destinacao
+        params_dp["codVinculacaoRecurso"] = vinculacao
 
-for index, row in orcamento_smdhc.iterrows():
-    orgao = str(row["Cd_Orgao"])
-    if len(orgao) == 1:
-        orgao = "0" + str(orgao)  # Padroniza o órgão para dois dígitos
-    uo = str(row["Cd_Unidade"])
-    funcao = str(row["Cd_Funcao"])
-    if len(funcao) == 1:
-        funcao = "0" + str(funcao)  # Padroniza a função para dois dígitos
-    subfuncao = row["Cd_SubFuncao"]
-    programa = row["Cd_Programa"]
-    proj_ativ = int(row["ProjetoAtividade"])
-    categoria = str(row["Categoria_Despesa"])
-    grupo = str(row["Grupo_Despesa"])
-    modalidade = str(row["Cd_Modalidade"])
-    elemento = str(row["Cd_Elemento"])
-    vinculacao = str(row["COD_VINC_REC_PMSP"])
-    if len(vinculacao) < 4:
-        vinculacao = ("0" * (4 - len(vinculacao))) + vinculacao
-    params_dp["anoDotacao"] = ano
-    params_dp["mesDotacao"] = mes
-    params_dp["codOrgao"] = orgao
-    params_dp["codUnidade"] = uo
-    params_dp["codFuncao"] = funcao
-    params_dp["codSubFuncao"] = subfuncao
-    params_dp["codPrograma"] = programa
-    params_dp["codProjetoAtividade"] = proj_ativ
-    params_dp["codCategoria"] = categoria
-    params_dp["codGrupo"] = grupo
-    params_dp["codModalidade"] = modalidade
-    params_dp["codElemento"] = elemento
-    params_dp["codVinculacaoRecurso"] = vinculacao
+        inicio_requisicao = time.time()
+        despesas = fazer_requisicao("despesas", params=params_dp)
+        requisicoes += 1
+        fim_requisicao = time.time()
 
-    inicio_requisicao = time.time()
-    despesas = fazer_requisicao("despesas", params=params_dp)
-    requisicoes += 1
-    fim_requisicao = time.time()
+        tempo_medio = (fim_requisicao - inicio) / requisicoes
 
-    tempo_medio = (fim_requisicao - inicio) / requisicoes
+        df_despesas = pd.json_normalize(despesas["lstDespesas"])
+        
+        porcentagem = (requisicoes / num_linhas) * 100
+        requisicoes_restantes = num_linhas - requisicoes
+        
+        tempo_restante = (tempo_medio * requisicoes_restantes)
+        horas_restantes, resto = divmod(tempo_restante, 3600)
+        minutos, segundos = divmod(resto, 60)
 
-    df_despesas = pd.json_normalize(despesas["lstDespesas"])
-    
-    porcentagem = (requisicoes / num_linhas) * 100
-    requisicoes_restantes = num_linhas - requisicoes
-    
-    tempo_restante = (tempo_medio * requisicoes_restantes)
-    horas_restantes, resto = divmod(tempo_restante, 3600)
-    minutos, segundos = divmod(resto, 60)
+        horario_termino = datetime.now() + timedelta(seconds=tempo_restante)
+        horario_termino_str = horario_termino.strftime("%H:%M:%S")
+        
+        print(
+            f"Requisição {requisicoes} de {num_linhas} - {porcentagem:.2f}% concluído ")
+        print(
+            f"Tempo restante estimado: {int(horas_restantes)} horas, {int(minutos)} minutos e {int(segundos)} segundos ")
+        print(
+            f"Previsão de término: {horario_termino_str} ", end=""
+        )
+        print("\x1b[F" * 2, end="")  # Move o cursor para cima uma linha]
+        
+        if proj_ativ < 8000:
+            coordenacao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "coordenadoria"].values
+            politicas_para = procv_acao.loc[procv_acao["acao"] == proj_ativ, "politicas_para"].values
+            # Corrige para garantir valor padrão
+            if len(coordenacao) > 0:
+                coordenacao_val = coordenacao[0]
+            else:
+                coordenacao_val = "Não encontrado"
+            if len(politicas_para) > 0:
+                politicas_para_val = politicas_para[0]
+            else:
+                politicas_para_val = "Não encontrado"
+        else:
+            coordenacao_val = "Emenda"
+            politicas_para_val = "Emenda"
 
-    horario_termino = datetime.now() + timedelta(seconds=tempo_restante)
-    horario_termino_str = horario_termino.strftime("%H:%M:%S")
-    
-    print(
-        f"Requisição {requisicoes} de {num_linhas} - {porcentagem:.2f}% concluído ")
-    print(
-        f"Tempo restante estimado: {int(horas_restantes)} horas, {int(minutos)} minutos e {int(segundos)} segundos ")
-    print(
-        f"Previsão de término: {horario_termino_str} ", end=""
+        elemento_despesa = categoria + grupo + modalidade + elemento + "00"
+        nome_elemento = procv_elemento.loc[procv_elemento["num_elemento"] == int(elemento_despesa), "elemento_despesa"].values
+
+        df_despesas["cd_orgao"] = orgao
+        
+        nome_orgao = procv_orgao.loc[procv_orgao["cod_orgao"] == int(orgao), "orgao"].values
+        df_despesas["orgao"] = nome_orgao[0]
+        if uo == "20":
+            df_despesas["orgao"] = "FUMCAF"
+        df_despesas["uo"] = uo
+        df_despesas["funcao"] = funcao
+        df_despesas["subfuncao"] = subfuncao
+        df_despesas["programa"] = programa
+        df_despesas["projeto_atividade"] = proj_ativ
+        df_despesas["coordenação"] = coordenacao_val
+        df_despesas["politicas_para"] = politicas_para_val
+        df_despesas["despesa"] = elemento_despesa
+        df_despesas["vinculacao"] = vinculacao
+        df_despesas["ds_fonte"] = ds_vinculacao
+
+        # Corrige o erro de atribuição
+        if len(nome_elemento) > 0:
+            df_despesas["nome_elemento"] = nome_elemento[0]
+        else:
+            df_despesas["nome_elemento"] = "Não encontrado"
+
+
+    # busca da fonte de recursos
+        
+        # fonte_recursos = f"{fonte}.{referencia}.{destinacao}.{vinculacao}"
+
+        # if fonte_recursos == "00.1.500.9001":
+        #     df_despesas["ds_fonte"] = "Recursos não vinculados de Impostos"
+        # else:
+        #     params_fonte = {
+        #         "anoExercicio": ano,
+        #         "codFonteRecurso": fonte,
+        #         "codReferencia": referencia,
+        #         "codDestinacaoRecurso": destinacao,
+        #         "codVinculacaoRecurso": vinculacao
+        #     }
+        #     fonte_recursos_response = fazer_requisicao("fonteRecursos", params=params_fonte)
+        #     df_fonte = pd.json_normalize(fonte_recursos_response["lstFonteRecurso"])
+            
+        #     # Validação e tratamento de erro
+        #     if df_fonte.empty:
+        #         print(f"Aviso: Resposta vazia para fonte_recursos={fonte_recursos}")
+        #         df_despesas["ds_fonte"] = "Não encontrado"
+        #     elif "txtDescricaoFonteRecurso" not in df_fonte.columns:
+        #         print(f"Aviso: Coluna 'txtDescricaoFonteRecurso' não encontrada")
+        #         print(f"Colunas disponíveis: {list(df_fonte.columns)}")
+        #         df_despesas["ds_fonte"] = "Não encontrado"
+        #     else:
+        #         df_despesas["ds_fonte"] = df_fonte["txtDescricaoFonteRecurso"].iloc[0]
+
+
+        df_final = pd.concat([df_final, df_despesas], ignore_index=True)
+
+    ordem_colunas =     [
+        "orgao",
+        "cd_orgao",
+        "uo",
+        "funcao",
+        "subfuncao",
+        "programa",
+        "projeto_atividade",
+        "despesa",
+        "vinculacao",
+        "ds_fonte",
+        "coordenação",
+        "politicas_para",
+        "nome_elemento",
+        "valOrcadoInicial",
+        "valSuplementado",
+        "valReduzido",
+        "valOrcadoAtualizado",
+        "valCongelado",
+        "valDescongelado",
+        "valDisponivel",
+        "valReservado",
+        "valCanceladoReserva",
+        "valReservadoLiquido",
+        "valTotalEmpenhado",
+        "valAnuladoEmpenho",
+        "valEmpenhadoLiquido",
+        "valLiquidado",
+        "valPagoExercicio",
+        "valPagoRestos",
+        "modifiedMode",
+        "usuarioOperacao"    
+    ]
+
+    # Adiciona a coluna com data e hora da extração
+    df_final["data_hora_extracao"] = str(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+
+    df_final = df_final[ordem_colunas + ["data_hora_extracao"]]
+    df_final = df_final.drop_duplicates()
+
+    # Antes de salvar, crie a pasta do ano se não existir
+    pasta_ano = fr"base_despesas\{ano}"
+    os.makedirs(pasta_ano, exist_ok=True)
+
+    # Agora salve o arquivo normalmente
+    df_final.to_excel(
+        fr"{pasta_ano}\despesas_{ano}{mes}.xlsx",
+        index=False
     )
-    print("\x1b[F" * 2, end="")  # Move o cursor para cima uma linha]
-    
-    if proj_ativ < 8000:
-        coordenacao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "coordenadoria"].values
-        politicas_para = procv_acao.loc[procv_acao["acao"] == proj_ativ, "politicas_para"].values
-        # Corrige para garantir valor padrão
-        if len(coordenacao) > 0:
-            coordenacao_val = coordenacao[0]
-        else:
-            coordenacao_val = "Não encontrado"
-        if len(politicas_para) > 0:
-            politicas_para_val = politicas_para[0]
-        else:
-            politicas_para_val = "Não encontrado"
-    else:
-        coordenacao_val = "Emenda"
-        politicas_para_val = "Emenda"
+    print(f"Dados salvos em despesas_{ano}{mes}.xlsx")
 
-    elemento_despesa = categoria + grupo + modalidade + elemento + "00"
-    nome_elemento = procv_elemento.loc[procv_elemento["num_elemento"] == int(elemento_despesa), "elemento_despesa"].values
+    fim = time.time()
+    horario_fim = datetime.now().strftime("%H:%M:%S")
+    print("Fim da execução:", horario_fim)
+    tempo_total = fim - inicio
+    minutos, segundos = divmod(tempo_total, 60)
 
-    df_despesas["cd_orgao"] = orgao
-    
-    nome_orgao = procv_orgao.loc[procv_orgao["cod_orgao"] == int(orgao), "orgao"].values
-    df_despesas["orgao"] = nome_orgao[0]
-    if uo == "20":
-        df_despesas["orgao"] = "FUMCAF"
-    df_despesas["uo"] = uo
-    df_despesas["funcao"] = funcao
-    df_despesas["subfuncao"] = subfuncao
-    df_despesas["programa"] = programa
-    df_despesas["projeto_atividade"] = proj_ativ
-    df_despesas["coordenação"] = coordenacao_val
-    df_despesas["politicas_para"] = politicas_para_val
-    df_despesas["despesa"] = elemento_despesa
+    print(f"Total de requisições: {requisicoes}")
+    print(f"Tempo total de execução: {int(minutos)} minutos e {int(segundos)} segundos")
 
-    # Corrige o erro de atribuição
-    if len(nome_elemento) > 0:
-        df_despesas["nome_elemento"] = nome_elemento[0]
-    else:
-        df_despesas["nome_elemento"] = "Não encontrado"
-
-    df_despesas["vinculacao"] = vinculacao
-
-    df_final = pd.concat([df_final, df_despesas], ignore_index=True)
-
-ordem_colunas =     [
-    "orgao",
-    "cd_orgao",
-    "uo",
-    "funcao",
-    "subfuncao",
-    "programa",
-    "projeto_atividade",
-    "despesa",
-    "vinculacao",
-    "coordenação",
-    "politicas_para",
-    "nome_elemento",
-    "valOrcadoInicial",
-    "valSuplementado",
-    "valReduzido",
-    "valOrcadoAtualizado",
-    "valCongelado",
-    "valDescongelado",
-    "valDisponivel",
-    "valReservado",
-    "valCanceladoReserva",
-    "valReservadoLiquido",
-    "valTotalEmpenhado",
-    "valAnuladoEmpenho",
-    "valEmpenhadoLiquido",
-    "valLiquidado",
-    "valPagoExercicio",
-    "valPagoRestos",
-    "modifiedMode",
-    "usuarioOperacao"    
-]
-
-# Adiciona a coluna com data e hora da extração
-df_final["data_hora_extracao"] = str(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-
-df_final = df_final[ordem_colunas + ["data_hora_extracao"]]
-df_final = df_final.drop_duplicates()
-
-# Antes de salvar, crie a pasta do ano se não existir
-pasta_ano = fr"C:\Users\x526325\Documents\GitHub\painel_orcamentario\base_despesas\{ano}"
-os.makedirs(pasta_ano, exist_ok=True)
-
-# Agora salve o arquivo normalmente
-df_final.to_excel(
-    fr"{pasta_ano}\despesas_{ano}{mes}.xlsx",
-    index=False
-)
-print(f"Dados salvos em despesas_{ano}{mes}.xlsx")
-
-fim = time.time()
-horario_fim = datetime.now().strftime("%H:%M:%S")
-print("Fim da execução:", horario_fim)
-tempo_total = fim - inicio
-minutos, segundos = divmod(tempo_total, 60)
-
-print(f"Total de requisições: {requisicoes}")
-print(f"Tempo total de execução: {int(minutos)} minutos e {int(segundos)} segundos")
+if __name__ == "__main__":
+    main()
