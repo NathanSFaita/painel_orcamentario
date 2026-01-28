@@ -1,4 +1,3 @@
-import despesas
 import os
 import pandas as pd
 import numpy as np
@@ -12,7 +11,6 @@ import time
 from datetime import datetime, timedelta
 
 # Rodar
-# os.system("python despesas.py")
 
 app = Dash(__name__)
 
