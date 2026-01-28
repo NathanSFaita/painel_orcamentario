@@ -15,7 +15,8 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+    #TOKEN = ""
+    TOKEN = os.getenv("API_TOKEN_SF")
     BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
     # Headers para autenticação
@@ -272,6 +273,7 @@ def main():
 
     print(f"Total de requisições: {requisicoes}")
     print(f"Tempo total de execução: {int(minutos)} minutos e {int(segundos)} segundos")
+    pass
 
 if __name__ == "__main__":
     main()
