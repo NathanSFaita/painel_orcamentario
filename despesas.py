@@ -43,21 +43,34 @@ def main():
 
     # Função para fazer requisições à API
     def fazer_requisicao(endpoint, params):
-        response = requests.get(BASE_URL, params=params, headers=headers, timeout=60)
+        url = f"{BASE_URL}/{endpoint}"
 
-        print(f"Status code: {response.status_code}")
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=60
+        )
+
+        print(f"[{endpoint}] Status code:", response.status_code)
 
         if response.status_code != 200:
-            print("Resposta bruta da API:")
-            print(response.text[:500])
-            raise Exception("Erro na requisição da API")
+            print("Resposta não-200 da API:")
+            print(response.text[:1000])
+            raise Exception(f"Erro HTTP {response.status_code}")
+
+        # Proteção TOTAL contra resposta vazia ou não-JSON
+        if not response.text or response.text.strip() == "":
+            print("Resposta vazia da API")
+            raise Exception("Resposta vazia da API")
 
         try:
             return response.json()
-        except ValueError:
-            print("Erro ao decodificar JSON")
-            print(response.text[:500])
+        except Exception:
+            print("Falha ao converter resposta em JSON")
+            print(response.text[:1000])
             raise
+
 
 
     params_dp = {
