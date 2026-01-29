@@ -291,7 +291,6 @@ def main():
     colunas_existentes = [col for col in ordem_colunas if col in df_final.columns]
     colunas_existentes.append("data_hora_extracao")
     
-    df_final = df_final[colunas_existentes]
     df_final = df_final.drop_duplicates()
 
     # Antes de salvar, crie a pasta do ano se não existir
