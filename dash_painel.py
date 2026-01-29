@@ -21,8 +21,9 @@ base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_despes
 anos_disponiveis = sorted([p for p in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, p))])
 print("Anos disponíveis:", anos_disponiveis)
 
-if not anos_disponiveis:
-    raise FileNotFoundError(f"❌ Nenhuma pasta de ano encontrada em: {base_dir}")
+if not os.path.exists(base_dir):
+    print("⚠️ Pasta base_despesas não encontrada.")
+    anos_disponiveis = []
 
 ano_padrao = anos_disponiveis[-1]
 
