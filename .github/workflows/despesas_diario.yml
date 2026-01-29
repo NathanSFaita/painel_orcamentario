@@ -2,8 +2,7 @@ name: Atualizar base de despesas
 
 on:
   schedule:
-    # Todos os dias às 08:00 (horário de Brasília = UTC-3)
-    - cron: "0 11 * * *"
+    - cron: "0 11 * * *"   # TODO dia às 08:00 UTC -3
   workflow_dispatch:
 
 permissions:
@@ -37,13 +36,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-
           git add base_despesas
-
-          # Só faz commit se houver alterações reais
-          if git diff --cached --quiet; then
-            echo "Nenhuma alteração na base. Commit não necessário."
-          else
-            git commit -m "Atualização automática diária da base"
-            git push
-          fi
+          git commit -m "Atualização automática diária da base"
+          git push
