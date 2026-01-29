@@ -23,8 +23,8 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    #TOKEN = ""
-    TOKEN = os.getenv("API_TOKEN_SF")
+    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+    #TOKEN = os.getenv("API_TOKEN_SF")
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
@@ -286,8 +286,12 @@ def main():
 
     # Adiciona a coluna com data e hora da extração
     df_final["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))
-
-    df_final = df_final[ordem_colunas + ["data_hora_extracao"]]
+   
+    # ✅ CORRIGIDO: Filtra apenas colunas que existem
+    colunas_existentes = [col for col in ordem_colunas if col in df_final.columns]
+    colunas_existentes.append("data_hora_extracao")
+    
+    df_final = df_final[colunas_existentes]
     df_final = df_final.drop_duplicates()
 
     # Antes de salvar, crie a pasta do ano se não existir
