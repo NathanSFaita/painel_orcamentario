@@ -1,5 +1,3 @@
-print(">>> VERSÃO NOVA DO DESPESAS.PY EM EXECUÇÃO <<<")
-
 import requests
 import pandas as pd
 from itertools import product
@@ -7,7 +5,11 @@ import time
 from datetime import datetime, timedelta
 import os
 
+
 def main():
+    BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
+
     inicio = time.time()
     horario_inicio = datetime.now().strftime("%H:%M:%S")
     print("Início da execução:", horario_inicio)
@@ -285,7 +287,7 @@ def main():
     df_final = df_final.drop_duplicates()
 
     # Antes de salvar, crie a pasta do ano se não existir
-    pasta_ano = os.path.join("base_despesas", ano)
+    pasta_ano = os.path.join(BASE_DESPESAS, ano)
     os.makedirs(pasta_ano, exist_ok=True)
 
     # Agora salve o arquivo normalmente
