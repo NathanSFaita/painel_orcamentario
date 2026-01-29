@@ -2,7 +2,8 @@ import requests
 import pandas as pd
 from itertools import product
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import pytz
 import os
 
 
@@ -10,11 +11,14 @@ def main():
     BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
 
+    # Defina o timezone de Brasília
+    tz_brasilia = pytz.timezone('America/Sao_Paulo')
+    
     inicio = time.time()
-    horario_inicio = datetime.now().strftime("%H:%M:%S")
+    horario_inicio = datetime.now(tz=tz_brasilia).strftime("%H:%M:%S")
     print("Início da execução:", horario_inicio)
 
-    dt_inicio = datetime.fromtimestamp(inicio)
+    dt_inicio = datetime.fromtimestamp(inicio, tz=tz_brasilia)
     ano = str(dt_inicio.year)
     mes = str(dt_inicio.month)
 
@@ -160,7 +164,7 @@ def main():
         horas_restantes, resto = divmod(tempo_restante, 3600)
         minutos, segundos = divmod(resto, 60)
 
-        horario_termino = datetime.now() + timedelta(seconds=tempo_restante)
+        horario_termino = datetime.now(tz=tz_brasilia) + timedelta(seconds=tempo_restante)
         horario_termino_str = horario_termino.strftime("%H:%M:%S")
         
         print(
@@ -281,7 +285,7 @@ def main():
     ]
 
     # Adiciona a coluna com data e hora da extração
-    df_final["data_hora_extracao"] = str(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+    df_final["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))
 
     df_final = df_final[ordem_colunas + ["data_hora_extracao"]]
     df_final = df_final.drop_duplicates()
@@ -299,7 +303,7 @@ def main():
     print(f"Dados salvos em despesas_{ano}{mes}.xlsx")
 
     fim = time.time()
-    horario_fim = datetime.now().strftime("%H:%M:%S")
+    horario_fim = datetime.now(tz=tz_brasilia).strftime("%H:%M:%S")
     print("Fim da execução:", horario_fim)
     tempo_total = fim - inicio
     minutos, segundos = divmod(tempo_total, 60)
