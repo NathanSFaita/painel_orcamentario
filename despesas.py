@@ -23,8 +23,8 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
-    #TOKEN = os.getenv("API_TOKEN_SF")
+    #TOKEN = ""
+    TOKEN = os.getenv("API_TOKEN_SF")
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
