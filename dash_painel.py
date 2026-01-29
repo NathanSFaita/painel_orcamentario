@@ -14,15 +14,16 @@ from datetime import datetime, timedelta
 
 app = Dash(__name__)
 
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
+# ✅ Corrigido: a pasta base_despesas está no mesmo diretório que este arquivo
+base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_despesas")
 
-
-# Caminho base das pastas
-base_dir = BASE_DESPESAS
-
-# Lista anos disponíveis (pastas)
+# ✅ Lista anos
 anos_disponiveis = sorted([p for p in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, p))])
+print("Anos disponíveis:", anos_disponiveis)
+
+if not anos_disponiveis:
+    raise FileNotFoundError(f"❌ Nenhuma pasta de ano encontrada em: {base_dir}")
+
 ano_padrao = anos_disponiveis[-1]
 
 # Lista meses disponíveis para o ano padrão
@@ -362,3 +363,4 @@ server = app.server
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050))
     app.run_server(host="0.0.0.0", port=port)
+    #app.run(host="0.0.0.0", port=port)
