@@ -285,7 +285,7 @@ def main():
     ]
 
     # Adiciona a coluna com data e hora da extração
-    df_final["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))
+    df_final["data_hora_extracao"] = datetime.now(tz=tz_brasilia)
 
     df_final = df_final[ordem_colunas + ["data_hora_extracao"]]
     df_final = df_final.drop_duplicates()

@@ -2,7 +2,7 @@ name: Atualizar base de despesas
 
 on:
   schedule:
-    - cron: "0 11 * * *"   # TODO dia às 08:00 UTC -3
+    - cron: "0 11 * * *"   # Todo dia às 08:00 UTC-3
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,10 @@ jobs:
           API_TOKEN_SF: ${{ secrets.API_TOKEN_SF }}
         run: |
           python despesas.py
+
+      - name: Forçar marca de atualização
+        run: |
+          date -u +"%Y-%m-%d %H:%M:%S UTC" > base_despesas/_ultima_atualizacao.txt
 
       - name: Commit dos dados atualizados
         run: |
