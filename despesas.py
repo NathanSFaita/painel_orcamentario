@@ -11,6 +11,7 @@ def main():
     BASE_PATH = os.path.dirname(os.path.abspath(__file__))
     BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
     print("BASE_DESPESAS:", BASE_DESPESAS)
+    
     # Defina o timezone de Brasília
     tz_brasilia = pytz.timezone('America/Sao_Paulo')
     
