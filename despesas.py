@@ -8,9 +8,9 @@ import os
 
 
 def main():
-    BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_PATH = os.path.dirname(os.path.abspath(__file__))
     BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
-
+    print("BASE_DESPESAS:", BASE_DESPESAS)
     # Defina o timezone de Brasília
     tz_brasilia = pytz.timezone('America/Sao_Paulo')
     
@@ -23,7 +23,7 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    #TOKEN = ""
+    TOKEN = ""
     TOKEN = os.getenv("API_TOKEN_SF")
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
@@ -298,12 +298,10 @@ def main():
     os.makedirs(pasta_ano, exist_ok=True)
 
     # Agora salve o arquivo normalmente
-    df_final.to_excel(
-    os.path.join(pasta_ano, f"despesas_{ano}{mes}.xlsx"),
-    index=False
-    )
-
-    print(f"Dados salvos em despesas_{ano}{mes}.xlsx")
+    caminho_despesas = os.path.join(pasta_ano, f"despesas_{ano}{mes}.xlsx")
+    df_final.to_excel(caminho_despesas,index=False)
+     
+    print(f"Dados salvos em {caminho_despesas}")
 
     fim = time.time()
     horario_fim = datetime.now(tz=tz_brasilia).strftime("%H:%M:%S")
