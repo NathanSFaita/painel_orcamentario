@@ -42,9 +42,10 @@ requisicao = 0
 
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
-params_emp["codOrgao"] = 34
+#params_emp["codOrgao"] = 34
 #params_emp["codUnidade"] = 10
-
+ano = "2025"
+mes = "12"
 num_pagina = fazer_requisicao("empenhos", params=params_emp)
 df_paginas = pd.json_normalize(num_pagina["metaDados"])
 requisicoes = df_paginas["qtdPaginas"][0]
