@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta, timezone
 import pytz
 import os
+import sys
 
 
 def main():
@@ -24,8 +25,8 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    TOKEN = ""
-    TOKEN = os.getenv("API_TOKEN_SF")
+    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+    #TOKEN = os.getenv("API_TOKEN_SF")
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
@@ -56,34 +57,54 @@ def main():
     # Função para fazer requisições à API
     def fazer_requisicao(endpoint, params):
         url = f"{BASE_URL}/{endpoint}"
-
-        response = requests.get(
-            url,
-            params=params,
-            headers=headers,
-            timeout=60
-        )
+        try:
+            response = requests.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=60
+            )
+        except Exception as e:
+            print(f"Erro na requisição HTTP: {e}")
+            sys.exit(1)
 
         print(f"[{endpoint}] Status code:", response.status_code)
 
         if response.status_code != 200:
             print("Resposta não-200 da API:")
-            print(response.text[:1000])
-            raise Exception(f"Erro HTTP {response.status_code}")
+            print(response.status_code, response.text[:1000])
+            sys.exit(1)
 
-        # Proteção TOTAL contra resposta vazia ou não-JSON
         if not response.text or response.text.strip() == "":
             print("Resposta vazia da API")
-            raise Exception("Resposta vazia da API")
+            sys.exit(1)
 
         try:
-            return response.json()
+            payload = response.json()
         except Exception:
             print("Falha ao converter resposta em JSON")
             print(response.text[:1000])
-            raise
+            sys.exit(1)
 
+        # Verificação específica para o endpoint 'despesas'
+        if endpoint == "despesas":
+            if not isinstance(payload, dict):
+                print("Payload inesperado para 'despesas' (não é dict). Abortando.")
+                print("params enviados:", params)
+                sys.exit(1)
+            lst = payload.get("lstDespesas", None)
+            if lst is None:
+                print("Campo 'lstDespesas' ausente na resposta da API para 'despesas'. Abortando.")
+                print("params enviados:", params)
+                print("resposta (parcial):", str(payload)[:1000])
+                sys.exit(1)
+            if isinstance(lst, list) and len(lst) == 0:
+                print("Campo 'lstDespesas' está vazio na resposta da API para 'despesas'. Abortando.")
+                print("params enviados:", params)
+                print("resposta (parcial):", str(payload)[:1000])
+                sys.exit(1)
 
+        return payload
 
     params_dp = {
         "anoDotacao": "",
