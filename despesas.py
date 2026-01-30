@@ -23,8 +23,8 @@ def main():
     mes = str(dt_inicio.month)
 
     # Configurações iniciais
-    #TOKEN = ""
-    TOKEN = os.getenv("API_TOKEN_SF")
+    TOKEN = "dccd222b-ef25-3cf9-8776-73b78fbd6b96"
+    #TOKEN = os.getenv("API_TOKEN_SF")
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
@@ -174,7 +174,7 @@ def main():
         print(
             f"Previsão de término: {horario_termino_str} ", end=""
         )
-        print("\x1b[F" * 2, end="")  # Move o cursor para cima uma linha]
+        print("\x1b[F" * 3, end="")  # Move o cursor para cima uma linha]
         
         if proj_ativ < 8000:
             coordenacao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "coordenadoria"].values
