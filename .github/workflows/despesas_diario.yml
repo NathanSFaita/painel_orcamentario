@@ -36,10 +36,14 @@ jobs:
         run: |
           date -u +"%Y-%m-%d %H:%M:%S UTC" > base_despesas/_ultima_atualizacao.txt
 
-      - name: Commit dos dados atualizados
+      - name: Commit dos dados atualizados (forçado)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
+
           git add base_despesas
-          git commit -m "Atualização automática diária da base"
+
+          git commit -m "Atualização automática diária da base" --allow-empty
+
           git push
+
