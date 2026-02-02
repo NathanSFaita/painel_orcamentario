@@ -36,6 +36,12 @@ jobs:
         run: |
           date -u +"%Y-%m-%d %H:%M:%S UTC" > base_despesas/_ultima_atualizacao.txt
 
+      - name: Força mudança no código para garantir redeploy no Heroku
+        run: |
+          echo "ultima_execucao=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" > version.txt
+          git add version.txt
+          git commit -m "Força redeploy automático do Heroku"
+
       - name: Commit dos dados atualizados (forçado)
         run: |
           git config user.name "github-actions"
