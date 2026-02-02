@@ -172,6 +172,7 @@ app.layout = html.Div(children=[
     html.H3(id="data_hora_atualizacao"),
     html.Div(id='resumo_valores'),
     html.Label('Execução Orçamentária'),
+    html.Br(),
     html.Button("Download XLSX", id="botao_download_xlsx"),
     dcc.Download(id="download_xlsx"),
     html.Br(),
