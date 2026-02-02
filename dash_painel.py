@@ -134,9 +134,12 @@ columns=[
 app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
-            html.H1("📊 Painel Orçamentário", className="text-center mb-4 mt-4", style={"color": "#1f77b4", "fontWeight": "bold"}),
+            html.Img(src=os.path.join("assets", "smdhc_logo.png"), style={"height": "100px", "marginTop": "10px"}),
+            html.H1("📊 Painel Orçamentário", className="text-center mb-4 mt-4", 
+                    style={"color": "#1f77b4", "fontWeight": "bold"}
+                    ),
             html.Hr()
-        ])
+        ], className="text-center")
     ]),
     
     dbc.Row([
@@ -217,7 +220,40 @@ app.layout = dbc.Container([
             dbc.Card([
                 dbc.CardBody([
                     html.H5("Execução Orçamentária", className="card-title fw-bold"),
-                    html.Div(id='resumo_valores', style={"fontSize": "14px", "lineHeight": "1.8"}),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Orçado Inicial", className="text-muted"),
+                                    html.H5(id="val_orcado_inicial", style={"color": "#1f77b4", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#e7f3ff"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Orçado Atualizado", className="text-muted"),
+                                    html.H5(id="val_orcado_atualizado", style={"color": "#ff7f0e", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#fff4e6"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Empenhado", className="text-muted"),
+                                    html.H5(id="val_empenhado", style={"color": "#d62728", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#ffe6e6"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Saldo Disponível", className="text-muted"),
+                                    html.H5(id="val_saldo", style={"color": "#2ca02c", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#e6ffe6"})
+                        ], md=3),
+                    ]),
                     html.Div(id="data_hora_atualizacao", className="text-muted mt-3", style={"fontSize": "12px"}),
                     html.Div("Fonte: API-SOF", className="text-muted", style={"fontSize": "12px", "marginTop": "5px"})
                 ])
@@ -258,7 +294,7 @@ def atualiza_meses(ano):
     Output('tabela_dinamica', 'data'),
     Output('tabela_dinamica', 'columns'),
     Output('lista_coordenação', 'value'),
-    Output('resumo_valores', 'children'),
+    #Output('resumo_valores', 'children'),
     Output('lista_orgao', 'value'),
     Output('lista_projeto_atividade', 'value'),
     Output('lista_elemento', 'value'),
@@ -359,7 +395,7 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         tabela = tabela[tabela["despesa"].isin(despesa)]
     
     # Seleciona apenas as colunas desejadas na ordem definida
-    tabela = tabela[ordem_final]
+    #tabela = tabela[ordem_final]
 
     # >>> Dicionário de mapeamento: nome_original -> nome_exibição
     mapeamento_colunas = {
@@ -377,15 +413,21 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         "Saldo de Dotação": "Saldo Disponível"
     }
     
-    # Renomeia as colunas da tabela
+    # 1️⃣ Primeiro renomeia TODAS as colunas
     tabela = tabela.rename(columns=mapeamento_colunas)
+
+    # 2️⃣ Depois aplica a ordem JÁ RENOMEADA
     ordem_final_renomeada = [mapeamento_colunas.get(col, col) for col in ordem_final]
+
+    # 3️⃣ AGORA SIM filtra/ordena o dataframe
+    tabela = tabela[ordem_final_renomeada]
+
 
     # Calcula os totais para o resumo
     orcado_inicial_total = tabela["Orçado Inicial"].sum() if "Orçado Inicial" in ordem_final_renomeada else 0
     orcado_atualizado_total = tabela["Orçado Atualizado"].sum() if "Orçado Atualizado" in ordem_final_renomeada else 0
-    congelado_total = tabela["Saldo Congelado"].sum() if "Saldo Congelado" in ordem_final_renomeada else 0
-    empenhado_total = tabela["Empenhado Líquido"].sum() if "Empenhado Líquido" in ordem_final_renomeada else 0
+    congelado_total = tabela["Congelado"].sum() if "Congelado" in ordem_final_renomeada else 0
+    empenhado_total = tabela["Empenhado"].sum() if "Empenhado" in ordem_final_renomeada else 0
     liquidado_total = tabela["Liquidado"].sum() if "Liquidado" in ordem_final_renomeada else 0
     pago_total = tabela["Pago no Exercício"].sum() if "Pago no Exercício" in ordem_final_renomeada else 0
     saldo_dotacao_total = tabela["Saldo Disponível"].sum() if "Saldo Disponível" in ordem_final_renomeada else 0
@@ -419,7 +461,16 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
                 decimal_delimiter=",", 
                 group_delimiter="."
             ).symbol(Symbol.yes).symbol_prefix("R$ ")
-        } if col_original in colunas_brl else {
+        } if col_renomeada in [
+   "Orçado Inicial",
+   "Orçado Atualizado",
+   "Congelado",
+   "Empenhado",
+   "Liquidado",
+   "Pago no Exercício",
+   "Saldo Disponível"
+] else {
+
             "name": col_renomeada,
             "id": col_renomeada
         }
@@ -430,7 +481,7 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         tabela.to_dict('records'),
         columns_dinamicas,
         coordenacao,
-        resumo,
+        #resumo,
         orgao,
         projeto_atividade,
         elemento,
@@ -458,6 +509,29 @@ def download_xlsx(n_clicks, data, columns):
         df = df.reindex(columns=col_ids)
     filename = f"execucao_smdhc_{datetime.now().strftime('%Y%m%d')}.xlsx"
     return dcc.send_data_frame(df.to_excel, filename, index=False)
+
+@app.callback(
+    Output('val_orcado_inicial', 'children'),
+    Output('val_orcado_atualizado', 'children'),
+    Output('val_empenhado', 'children'),
+    Output('val_saldo', 'children'),
+    Input('tabela_dinamica', 'data'),
+    Input('tabela_dinamica', 'columns'),
+)
+def atualiza_resumo_valores(data, columns):
+    df = pd.DataFrame(data or [])
+    
+    orcado_inicial = df["Orçado Inicial"].sum() if "Orçado Inicial" in df.columns else 0
+    orcado_atualizado = df["Orçado Atualizado"].sum() if "Orçado Atualizado" in df.columns else 0
+    empenhado = df["Empenhado"].sum() if "Empenhado" in df.columns else 0
+    saldo = df["Saldo Disponível"].sum() if "Saldo Disponível" in df.columns else 0
+    
+    return (
+        f"R$ {orcado_inicial:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {orcado_atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {empenhado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {saldo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    )
 
 server = app.server
 
