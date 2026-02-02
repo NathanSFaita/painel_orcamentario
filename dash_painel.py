@@ -19,7 +19,7 @@ base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_despes
 
 # ✅ Lista anos
 anos_disponiveis = sorted([p for p in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, p))])
-print("Anos disponíveis:", anos_disponiveis)
+#print("Anos disponíveis:", anos_disponiveis)
 
 if not os.path.exists(base_dir):
     print("⚠️ Pasta base_despesas não encontrada.")
@@ -172,6 +172,9 @@ app.layout = html.Div(children=[
     html.H3(id="data_hora_atualizacao"),
     html.Div(id='resumo_valores'),
     html.Label('Execução Orçamentária'),
+    html.Button("Download XLSX", id="botao_download_xlsx"),
+    dcc.Download(id="download_xlsx"),
+    html.Br(),
     dt.DataTable(
         id='tabela_dinamica',
         data=pivot[colunas_exibir].to_dict('records'),
@@ -358,9 +361,29 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         [{"label": c, "value": c} for c in colunas_exibir]
     )
 
+@app.callback(
+    Output("download_xlsx", "data"),
+    Input("botao_download_xlsx", "n_clicks"),
+    State("tabela_dinamica", "data"),
+    State("tabela_dinamica", "columns"),
+    prevent_initial_call=True,
+)
+def download_xlsx(n_clicks, data, columns):
+    df = pd.DataFrame(data or [])
+    if columns:
+        col_ids = [c.get("id") for c in columns]
+        df = df.reindex(columns=col_ids)
+    filename = f"execucao_smdhc_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return dcc.send_data_frame(df.to_excel, filename, index=False)
 
 server = app.server
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8050))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    # Detecta ambiente: se PORT está definida, é Heroku; senão, é local
+    if os.environ.get("PORT"):
+        # Rodar no Heroku
+        port = int(os.environ.get("PORT", 8050))
+        app.run(host="0.0.0.0", port=port, debug=False)
+    else:
+        # Rodar localmente
+        app.run(host="127.0.0.1", port=8050, debug=True)
