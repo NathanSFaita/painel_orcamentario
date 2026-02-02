@@ -302,14 +302,34 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     # Seleciona apenas as colunas desejadas na ordem definida
     tabela = tabela[ordem_final]
 
+    # >>> Dicionário de mapeamento: nome_original -> nome_exibição
+    mapeamento_colunas = {
+        "orgao": "Órgão",
+        "coordenação": "Coordenação",
+        "despesa": "Código Despesa",
+        "nome_elemento": "Elemento de Despesa",
+        "valOrcadoInicial": "Orçado Inicial",
+        "valOrcadoAtualizado": "Orçado Atualizado",
+        "valLiquidado": "Liquidado",
+        "valPagoExercicio": "Pago no Exercício",
+        "Congelado": "Saldo Congelado",
+        "valEmpenhadoLiquido": "Empenhado Líquido",
+        "Saldo de Dotação": "Saldo Disponível",
+        "projeto_atividade": "Projeto/Atividade"
+    }
+    
+    # Renomeia as colunas da tabela
+    tabela = tabela.rename(columns=mapeamento_colunas)
+    ordem_final_renomeada = [mapeamento_colunas.get(col, col) for col in ordem_final]
+
     # Calcula os totais para o resumo
-    orcado_inicial_total = tabela["valOrcadoInicial"].sum() if "valOrcadoInicial" in ordem_final else 0
-    orcado_atualizado_total = tabela["valOrcadoAtualizado"].sum() if "valOrcadoAtualizado" in ordem_final else 0
-    congelado_total = tabela["Congelado"].sum() if "Congelado" in ordem_final else 0
-    empenhado_total = tabela["valEmpenhadoLiquido"].sum() if "valEmpenhadoLiquido" in ordem_final else 0
-    liquidado_total = tabela["valLiquidado"].sum() if "valLiquidado" in ordem_final else 0
-    pago_total = tabela["valPagoExercicio"].sum() if "valPagoExercicio" in ordem_final else 0
-    saldo_dotacao_total = tabela["Saldo de Dotação"].sum() if "Saldo de Dotação" in ordem_final else 0
+    orcado_inicial_total = tabela["Orçado Inicial"].sum() if "Orçado Inicial" in ordem_final_renomeada else 0
+    orcado_atualizado_total = tabela["Orçado Atualizado"].sum() if "Orçado Atualizado" in ordem_final_renomeada else 0
+    congelado_total = tabela["Saldo Congelado"].sum() if "Saldo Congelado" in ordem_final_renomeada else 0
+    empenhado_total = tabela["Empenhado Líquido"].sum() if "Empenhado Líquido" in ordem_final_renomeada else 0
+    liquidado_total = tabela["Liquidado"].sum() if "Liquidado" in ordem_final_renomeada else 0
+    pago_total = tabela["Pago no Exercício"].sum() if "Pago no Exercício" in ordem_final_renomeada else 0
+    saldo_dotacao_total = tabela["Saldo Disponível"].sum() if "Saldo Disponível" in ordem_final_renomeada else 0
 
     resumo = (
         f"Orçado Inicial Total: R$ {orcado_inicial_total:,.2f} | "
@@ -326,11 +346,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     data_atualizacao = pd.to_datetime(pivot["data_hora_extracao"], errors="coerce").max()
     data_atualizacao_str = data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if pd.notnull(data_atualizacao) else ""
 
-    # Gera as colunas dinamicamente baseado na ordem final
+    # Gera as colunas dinamicamente baseado na ordem final renomeada
     columns_dinamicas = [
         {
-            "name": i,
-            "id": i,
+            "name": col_renomeada,
+            "id": col_renomeada,
             "type": "numeric",
             "format": Format(
                 scheme=Scheme.fixed, 
@@ -340,8 +360,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
                 decimal_delimiter=",", 
                 group_delimiter="."
             ).symbol(Symbol.yes).symbol_prefix("R$ ")
-        } if i in colunas_brl else {"name": i, "id": i}
-        for i in ordem_final
+        } if col_original in colunas_brl else {
+            "name": col_renomeada,
+            "id": col_renomeada
+        }
+        for col_original, col_renomeada in zip(ordem_final, ordem_final_renomeada)
     ]
 
     return (
