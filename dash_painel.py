@@ -6,13 +6,13 @@ import plotly.express as px
 from dash import Dash, html, dcc, Input, Output, State, callback_context
 import dash.dash_table as dt
 from dash.dash_table.Format import Format, Group, Scheme, Symbol
+import dash_bootstrap_components as dbc
 import pytz
 import time
 from datetime import datetime, timedelta
 
 # Rodar
-
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # ✅ Corrigido: a pasta base_despesas está no mesmo diretório que este arquivo
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "base_despesas")
@@ -101,15 +101,16 @@ colunas_brl = [
 
 colunas_exibir = [
     "orgao",
+    "projeto_atividade",
     "coordenação",
     "despesa",
     "nome_elemento",
     "valOrcadoInicial",
     "valOrcadoAtualizado",
-    "valLiquidado",
-    "valPagoExercicio",
     "Congelado",
     "valEmpenhadoLiquido",
+    "valLiquidado",
+    "valPagoExercicio",
     "Saldo de Dotação"
 ]
 
@@ -130,60 +131,118 @@ columns=[
     for i in colunas_exibir
 ]
 
-app.layout = html.Div(children=[
-    html.H1(children='Painel Orçamentário'),
-    html.H2(children="Tabela Dinâmica de Despesas por coordenação"),
-    html.Label("Ano:"),
-    dcc.Dropdown(
-        id="dropdown_ano",
-        options=[{"label": a, "value": a} for a in anos_disponiveis],
-        value=ano_padrao,
-        clearable=False
-    ),
-    html.Label("Mês:"),
-    dcc.Dropdown(
-        id="dropdown_mes",
-        options=[{"label": m, "value": m} for m in meses_disponiveis],
-        value=mes_padrao,
-        clearable=False
-    ),
-    html.Label('Órgão:'),
-    dcc.Dropdown(opcoes_orgao, value=['Todos'], id='lista_orgao', multi=True),
-    html.Label('Coordenação:'),
-    dcc.Dropdown(opcoes_coordenacao, value=['Todas'], id='lista_coordenação', multi=True),
-    html.Label('Projeto/Atividade:'),
-    dcc.Dropdown(id='lista_projeto_atividade', value=['Todos'], multi=True),
-    html.Label('Elemento de Despesa:'),
-    dcc.Dropdown(opcoes_elemento, value=['Todos'], id='lista_elemento', multi=True),
-    html.Label('Despesa (Código):'),
-    dcc.Dropdown(opcoes_despesa, value=['Todos'], id='lista_despesa', multi=True),
-    html.Br(),
-    html.Button('Limpar Filtros', id='botao_limpar', n_clicks=0),
-    html.Br(),
-    html.Label('Colunas a Exibir e Ordem:'),
-    dcc.Dropdown(
-        id='ordem_colunas',
-        options=[{"label": c, "value": c} for c in colunas_exibir],
-        value=colunas_exibir,
-        multi=True,
-        placeholder='Selecione as colunas...'
-    ),
-    html.Br(),
-    html.H3(id="data_hora_atualizacao"),
-    html.Div(id='resumo_valores'),
-    html.Label('Execução Orçamentária'),
-    html.Br(),
-    html.Button("Download XLSX", id="botao_download_xlsx"),
-    dcc.Download(id="download_xlsx"),
-    html.Br(),
-    dt.DataTable(
-        id='tabela_dinamica',
-        data=pivot[colunas_exibir].to_dict('records'),
-        columns=columns,
-        style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left'},
-    ),
-])
+app.layout = dbc.Container([
+    dbc.Row([
+        dbc.Col([
+            html.H1("📊 Painel Orçamentário", className="text-center mb-4 mt-4", style={"color": "#1f77b4", "fontWeight": "bold"}),
+            html.Hr()
+        ])
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            html.H5("Filtros", className="fw-bold mb-3"),
+            html.Label("Ano:", className="fw-bold"),
+            dcc.Dropdown(
+                id="dropdown_ano",
+                options=[{"label": a, "value": a} for a in anos_disponiveis],
+                value=ano_padrao,
+                clearable=False,
+                style={"width": "100%"}
+            ),
+        ], md=3, className="mb-3"),
+        
+        dbc.Col([
+            html.Label("Mês:", className="fw-bold mt-4"),
+            dcc.Dropdown(
+                id="dropdown_mes",
+                options=[{"label": m, "value": m} for m in meses_disponiveis],
+                value=mes_padrao,
+                clearable=False,
+                style={"width": "100%"}
+            ),
+        ], md=3, className="mb-3"),
+        
+        dbc.Col([
+            html.Label("Órgão:", className="fw-bold mt-4"),
+            dcc.Dropdown(opcoes_orgao, value=['Todos'], id='lista_orgao', multi=True),
+        ], md=6, className="mb-3"),
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            html.Label('Coordenação:', className="fw-bold"),
+            dcc.Dropdown(opcoes_coordenacao, value=['Todas'], id='lista_coordenação', multi=True),
+        ], md=4, className="mb-3"),
+        
+        dbc.Col([
+            html.Label('Projeto/Atividade:', className="fw-bold"),
+            dcc.Dropdown(id='lista_projeto_atividade', value=['Todos'], multi=True),
+        ], md=4, className="mb-3"),
+        
+        dbc.Col([
+            html.Label('Elemento de Despesa:', className="fw-bold"),
+            dcc.Dropdown(opcoes_elemento, value=['Todos'], id='lista_elemento', multi=True),
+        ], md=4, className="mb-3"),
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            html.Label('Despesa (Código):', className="fw-bold"),
+            dcc.Dropdown(opcoes_despesa, value=['Todos'], id='lista_despesa', multi=True),
+        ], md=6, className="mb-3"),
+        
+        dbc.Col([
+            html.Label('Colunas a Exibir:', className="fw-bold"),
+            dcc.Dropdown(
+                id='ordem_colunas',
+                options=[{"label": c, "value": c} for c in colunas_exibir],
+                value=colunas_exibir,
+                multi=True,
+                placeholder='Selecione as colunas...'
+            ),
+        ], md=6, className="mb-3"),
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            dbc.Button("🗑️ Limpar Filtros", id='botao_limpar', color="warning", className="me-2", n_clicks=0),
+            dbc.Button("📥 Download XLSX", id="botao_download_xlsx", color="success"),
+            dcc.Download(id="download_xlsx"),
+        ], className="mb-4")
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.H5("Execução Orçamentária", className="card-title fw-bold"),
+                    html.Div(id='resumo_valores', style={"fontSize": "14px", "lineHeight": "1.8"}),
+                    html.Div(id="data_hora_atualizacao", className="text-muted mt-3", style={"fontSize": "12px"}),
+                    html.Div("Fonte: API-SOF", className="text-muted", style={"fontSize": "12px", "marginTop": "5px"})
+                ])
+            ], className="mb-4")
+        ])
+    ]),
+    
+    dbc.Row([
+        dbc.Col([
+            dt.DataTable(
+                id='tabela_dinamica',
+                data=pivot[colunas_exibir].to_dict('records'),
+                columns=columns,
+                style_table={'overflowX': 'auto', 'height': '600px', 'overflowY': 'auto'},
+                style_cell={'textAlign': 'left', 'padding': '10px', 'fontFamily': 'Arial, sans-serif'},
+                style_header={'backgroundColor': '#1f77b4', 'color': 'white', 'fontWeight': 'bold'},
+                style_data_conditional=[
+                    {'if': {'row_index': 'odd'}, 'backgroundColor': '#f9f9f9'},
+                    {'if': {'row_index': 'even'}, 'backgroundColor': 'white'}
+                ]
+            )
+        ])
+    ]),
+    
+], fluid=True, style={"backgroundColor": "#f5f5f5", "padding": "20px"})
 
 @app.callback(
     Output('dropdown_mes', 'options'),
@@ -305,17 +364,17 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     # >>> Dicionário de mapeamento: nome_original -> nome_exibição
     mapeamento_colunas = {
         "orgao": "Órgão",
+        "projeto_atividade": "Ação",
         "coordenação": "Coordenação",
         "despesa": "Código Despesa",
         "nome_elemento": "Elemento de Despesa",
         "valOrcadoInicial": "Orçado Inicial",
         "valOrcadoAtualizado": "Orçado Atualizado",
+        "valEmpenhadoLiquido": "Empenhado",
+        "Congelado": "Congelado",
         "valLiquidado": "Liquidado",
         "valPagoExercicio": "Pago no Exercício",
-        "Congelado": "Saldo Congelado",
-        "valEmpenhadoLiquido": "Empenhado Líquido",
-        "Saldo de Dotação": "Saldo Disponível",
-        "projeto_atividade": "Projeto/Atividade"
+        "Saldo de Dotação": "Saldo Disponível"
     }
     
     # Renomeia as colunas da tabela
