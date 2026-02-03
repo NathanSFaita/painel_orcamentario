@@ -444,7 +444,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     resumo = resumo.replace(",", "X").replace(".", ",").replace("X", ".")
 
     # Data/hora de atualização
-    data_atualizacao = pd.to_datetime(pivot["data_hora_extracao"], errors="coerce").max()
+    data_atualizacao = pd.to_datetime(
+        pivot["data_hora_extracao"],
+        errors="coerce",
+        dayfirst=True
+    ).max()
     data_atualizacao_str = data_atualizacao.strftime("%d/%m/%Y %H:%M:%S") if pd.notnull(data_atualizacao) else ""
 
     # Gera as colunas dinamicamente baseado na ordem final renomeada
