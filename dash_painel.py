@@ -481,6 +481,15 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         for col_original, col_renomeada in zip(ordem_final, ordem_final_renomeada)
     ]
 
+    # Formata todas as colunas de data para dd/mm/aaaa
+    for col in tabela.columns:
+        if pd.api.types.is_datetime64_any_dtype(tabela[col]):
+            tabela[col] = tabela[col].dt.strftime("%d/%m/%Y")
+        elif tabela[col].dtype == object and "data" in col.lower():
+            parsed = pd.to_datetime(tabela[col], errors="coerce", dayfirst=True)
+            if parsed.notna().any():
+                tabela[col] = parsed.dt.strftime("%d/%m/%Y")
+
     return (
         tabela.to_dict('records'),
         columns_dinamicas,
