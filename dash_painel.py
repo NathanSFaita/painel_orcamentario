@@ -39,6 +39,17 @@ def lista_meses(ano):
 meses_disponiveis = lista_meses(ano_padrao)
 mes_padrao = meses_disponiveis[-1] if meses_disponiveis else None
 
+def ordena_alfabetica(valores):
+    return sorted(valores, key=lambda v: str(v).casefold())
+
+def ordena_numerica(valores):
+    def chave(v):
+        try:
+            return (0, int(str(v).strip()))
+        except (ValueError, TypeError):
+            return (1, str(v))
+    return sorted(valores, key=chave)
+
 def carrega_base(ano, mes):
     caminho = os.path.join(base_dir, ano, f"despesas_{ano}{mes}.xlsx")
     return pd.read_excel(caminho)
@@ -52,6 +63,7 @@ def gera_pivot(base_despesas):
         "valOrcadoAtualizado",
         "valCongelado",
         "valDescongelado",
+        "valDisponivel",
         "valEmpenhadoLiquido",
         "valLiquidado",
         "valPagoExercicio",
@@ -77,22 +89,18 @@ def gera_pivot(base_despesas):
 
 pivot = gera_pivot(base_despesas)
 
-opcoes_orgao = list(pivot["orgao"].unique())
-opcoes_orgao.append("Todos")
-opcoes_coordenacao = list(pivot["coordenação"].unique())
-opcoes_coordenacao.append("Todas")
-opcoes_elemento = list(pivot["nome_elemento"].unique())
-opcoes_elemento.append("Todos")
-opcoes_despesa = list(pivot["despesa"].unique())
-opcoes_despesa.append("Todos")
-opcoes_projeto_atividade = list(pivot["projeto_atividade"].unique())
-opcoes_projeto_atividade.append("Todos")
+opcoes_orgao = ordena_alfabetica(pivot["orgao"].unique()) + ["Todos"]
+opcoes_coordenacao = ordena_alfabetica(pivot["coordenação"].unique()) + ["Todas"]
+opcoes_elemento = ordena_alfabetica(pivot["nome_elemento"].unique()) + ["Todos"]
+opcoes_despesa = ordena_numerica(pivot["despesa"].unique()) + ["Todos"]
+opcoes_projeto_atividade = ordena_numerica(pivot["projeto_atividade"].unique()) + ["Todos"]
 
 
 colunas_brl = [
     "valOrcadoInicial",
     "valOrcadoAtualizado",
     "Congelado",
+    "valDisponivel",
     "valEmpenhadoLiquido",
     "valLiquidado",
     "valPagoExercicio",
@@ -108,6 +116,7 @@ colunas_exibir = [
     "valOrcadoInicial",
     "valOrcadoAtualizado",
     "Congelado",
+    "valDisponivel",
     "valEmpenhadoLiquido",
     "valLiquidado",
     "valPagoExercicio",
@@ -225,30 +234,63 @@ app.layout = dbc.Container([
                             dbc.Card([
                                 dbc.CardBody([
                                     html.H6("Orçado Inicial", className="text-muted"),
-                                    html.H5(id="val_orcado_inicial", style={"color": "#1f77b4", "fontWeight": "bold"})
-                                ])
-                            ], className="mb-3", style={"backgroundColor": "#e7f3ff"})
-                        ], md=3),
-                        dbc.Col([
-                            dbc.Card([
-                                dbc.CardBody([
-                                    html.H6("Orçado Atualizado", className="text-muted"),
-                                    html.H5(id="val_orcado_atualizado", style={"color": "#ff7f0e", "fontWeight": "bold"})
-                                ])
-                            ], className="mb-3", style={"backgroundColor": "#fff4e6"})
-                        ], md=3),
-                        dbc.Col([
-                            dbc.Card([
-                                dbc.CardBody([
-                                    html.H6("Empenhado", className="text-muted"),
-                                    html.H5(id="val_empenhado", style={"color": "#d62728", "fontWeight": "bold"})
+                                    html.H5(id="val_orcado_inicial", style={"color": "#d62728", "fontWeight": "bold"})
                                 ])
                             ], className="mb-3", style={"backgroundColor": "#ffe6e6"})
                         ], md=3),
                         dbc.Col([
                             dbc.Card([
                                 dbc.CardBody([
-                                    html.H6("Saldo Disponível", className="text-muted"),
+                                    html.H6("Orçado Atualizado", className="text-muted"),
+                                    html.H5(id="val_orcado_atualizado", style={"color": "#2ca02c", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#e6ffe6"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Congelado", className="text-muted"),
+                                    html.H5(id="val_congelado", style={"color": "#1f77b4", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#e7f3ff"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Disponível", className="text-muted"),
+                                    html.H5(id="val_disponivel", style={"color": "#ff7f0e", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#fff4e6"})
+                        ], md=3),
+                        html.Br(),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Empenhado", className="text-muted"),
+                                    html.H5(id="val_empenhado", style={"color": "#ff7f0e", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#fff4e6"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Liquidado", className="text-muted"),
+                                    html.H5(id="val_liquidado", style={"color": "#1f77b4", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#e7f3ff"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Pago", className="text-muted"),
+                                    html.H5(id="val_pago", style={"color": "#d62728", "fontWeight": "bold"})
+                                ])
+                            ], className="mb-3", style={"backgroundColor": "#ffe6e6"})
+                        ], md=3),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardBody([
+                                    html.H6("Saldo de Dotação", className="text-muted"),
                                     html.H5(id="val_saldo", style={"color": "#2ca02c", "fontWeight": "bold"})
                                 ])
                             ], className="mb-3", style={"backgroundColor": "#e6ffe6"})
@@ -337,11 +379,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     pivot = gera_pivot(base_despesas)
 
     # Opções dos filtros (sempre baseado nos dados carregados)
-    opcoes_orgao = list(pivot["orgao"].unique()) + ["Todos"]
-    opcoes_coordenacao = list(pivot["coordenação"].unique()) + ["Todas"]
-    opcoes_projeto_atividade = list(pivot["projeto_atividade"].unique()) + ["Todos"]
-    opcoes_elemento = list(pivot["nome_elemento"].unique()) + ["Todos"]
-    opcoes_despesa = list(pivot["despesa"].unique()) + ["Todos"]
+    opcoes_orgao = ordena_alfabetica(pivot["orgao"].unique()) + ["Todos"]
+    opcoes_coordenacao = ordena_alfabetica(pivot["coordenação"].unique()) + ["Todas"]
+    opcoes_projeto_atividade = ordena_numerica(pivot["projeto_atividade"].unique()) + ["Todos"]
+    opcoes_elemento = ordena_alfabetica(pivot["nome_elemento"].unique()) + ["Todos"]
+    opcoes_despesa = ordena_numerica(pivot["despesa"].unique()) + ["Todos"]
 
     # Converte None em lista padrão
     orgao = orgao if orgao else ["Todos"]
@@ -371,7 +413,7 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
             despesa = [d for d in despesa if d in despesa_valida]
             if not despesa:
                 despesa = ["Todos"]
-            opcoes_despesa = despesa_valida + ["Todos"]
+            opcoes_despesa = ordena_numerica(despesa_valida) + ["Todos"]
         
         # Se despesa foi selecionado, sincroniza elemento
         if despesa != ["Todos"]:
@@ -379,7 +421,7 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
             elemento = [e for e in elemento if e in elemento_valida]
             if not elemento:
                 elemento = ["Todos"]
-            opcoes_elemento = elemento_valida + ["Todos"]
+            opcoes_elemento = ordena_alfabetica(elemento_valida) + ["Todos"]
 
     # Filtra o DataFrame conforme os filtros selecionados
     tabela = pivot.copy()
@@ -406,11 +448,12 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         "nome_elemento": "Elemento de Despesa",
         "valOrcadoInicial": "Orçado Inicial",
         "valOrcadoAtualizado": "Orçado Atualizado",
+        "valDisponivel": "Disponível",
         "valEmpenhadoLiquido": "Empenhado",
         "Congelado": "Congelado",
         "valLiquidado": "Liquidado",
         "valPagoExercicio": "Pago no Exercício",
-        "Saldo de Dotação": "Saldo Disponível"
+        "Saldo de Dotação": "Saldo de Dotação"
     }
     
     # 1️⃣ Primeiro renomeia TODAS as colunas
@@ -427,15 +470,17 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     orcado_inicial_total = tabela["Orçado Inicial"].sum() if "Orçado Inicial" in ordem_final_renomeada else 0
     orcado_atualizado_total = tabela["Orçado Atualizado"].sum() if "Orçado Atualizado" in ordem_final_renomeada else 0
     congelado_total = tabela["Congelado"].sum() if "Congelado" in ordem_final_renomeada else 0
+    disponivel_total = tabela["Disponível"].sum() if "Disponível" in ordem_final_renomeada else 0
     empenhado_total = tabela["Empenhado"].sum() if "Empenhado" in ordem_final_renomeada else 0
     liquidado_total = tabela["Liquidado"].sum() if "Liquidado" in ordem_final_renomeada else 0
     pago_total = tabela["Pago no Exercício"].sum() if "Pago no Exercício" in ordem_final_renomeada else 0
-    saldo_dotacao_total = tabela["Saldo Disponível"].sum() if "Saldo Disponível" in ordem_final_renomeada else 0
+    saldo_dotacao_total = tabela["Saldo de Dotação"].sum() if "Saldo de Dotação" in ordem_final_renomeada else 0
 
     resumo = (
         f"Orçado Inicial Total: R$ {orcado_inicial_total:,.2f} | "
         f"Orçado Atualizado Total: R$ {orcado_atualizado_total:,.2f} | "
         f"Congelado Total: R$ {congelado_total:,.2f} | "
+        f"Disponível Total: R$ {disponivel_total:,.2f} | "
         f"Empenhado Líquido Total: R$ {empenhado_total:,.2f} | "
         f"Liquidado Total: R$ {liquidado_total:,.2f} | "
         f"Pago no Exercício Total: R$ {pago_total:,.2f} | "
@@ -469,10 +514,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
    "Orçado Inicial",
    "Orçado Atualizado",
    "Congelado",
+   "Disponível",
    "Empenhado",
    "Liquidado",
    "Pago no Exercício",
-   "Saldo Disponível"
+   "Saldo de Dotação"
 ] else {
 
             "name": col_renomeada,
@@ -526,7 +572,11 @@ def download_xlsx(n_clicks, data, columns):
 @app.callback(
     Output('val_orcado_inicial', 'children'),
     Output('val_orcado_atualizado', 'children'),
+    Output('val_congelado', 'children'),
+    Output('val_disponivel', 'children'),
     Output('val_empenhado', 'children'),
+    Output('val_liquidado', 'children'),
+    Output('val_pago', 'children'),
     Output('val_saldo', 'children'),
     Input('tabela_dinamica', 'data'),
     Input('tabela_dinamica', 'columns'),
@@ -536,13 +586,21 @@ def atualiza_resumo_valores(data, columns):
     
     orcado_inicial = df["Orçado Inicial"].sum() if "Orçado Inicial" in df.columns else 0
     orcado_atualizado = df["Orçado Atualizado"].sum() if "Orçado Atualizado" in df.columns else 0
+    congelado = df["Congelado"].sum() if "Congelado" in df.columns else 0
+    disponivel = df["Disponível"].sum() if "Disponível" in df.columns else 0
     empenhado = df["Empenhado"].sum() if "Empenhado" in df.columns else 0
-    saldo = df["Saldo Disponível"].sum() if "Saldo Disponível" in df.columns else 0
+    liquidado = df["Liquidado"].sum() if "Liquidado" in df.columns else 0
+    pago = df["Pago no Exercício"].sum() if "Pago no Exercício" in df.columns else 0
+    saldo = df["Saldo de Dotação"].sum() if "Saldo de Dotação" in df.columns else 0
     
     return (
         f"R$ {orcado_inicial:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         f"R$ {orcado_atualizado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {congelado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {disponivel:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         f"R$ {empenhado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {liquidado:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        f"R$ {pago:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         f"R$ {saldo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     )
 
