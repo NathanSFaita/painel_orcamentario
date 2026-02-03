@@ -153,8 +153,19 @@ app.layout = dbc.Container([
     
     dbc.Row([
         dbc.Col([
-            html.H5("Filtros", className="fw-bold mb-3"),
-            html.Label("Ano:", className="fw-bold"),
+            html.H4("Execução Orçamentária - Secretaria Municipal de Direitos Humanos e Cidadania", 
+                    className="text-center mb-4",
+                    style={"color": "#35ca4eb1", "fontWeight": "bold"}
+                    )
+        ])
+    ]),
+    dbc.Row([
+        html.H5("Filtros", className="fw-bold mb-3")
+    ]),
+    dbc.Row([
+        dbc.Col([
+            #html.H5("Filtros", className="fw-bold mb-3"),
+            html.Label("Ano:", className="fw-bold mt-4"),
             dcc.Dropdown(
                 id="dropdown_ano",
                 options=[{"label": a, "value": a} for a in anos_disponiveis],
@@ -162,7 +173,7 @@ app.layout = dbc.Container([
                 clearable=False,
                 style={"width": "100%"}
             ),
-        ], md=3, className="mb-3"),
+        ], md=1, className="mb-1"),
         
         dbc.Col([
             html.Label("Mês:", className="fw-bold mt-4"),
@@ -173,36 +184,35 @@ app.layout = dbc.Container([
                 clearable=False,
                 style={"width": "100%"}
             ),
-        ], md=3, className="mb-3"),
-        
-        dbc.Col([
-            html.Label("Órgão:", className="fw-bold mt-4"),
-            dcc.Dropdown(opcoes_orgao, value=['Todos'], id='lista_orgao', multi=True),
-        ], md=6, className="mb-3"),
+        ], md=1, className="mb-1"),
     ]),
     
     dbc.Row([
         dbc.Col([
+            html.Label("Órgão:", className="fw-bold mt-4"),
+            dcc.Dropdown(opcoes_orgao, value=['Todos'], id='lista_orgao', multi=True),
+        ], md=2, className="mb-3"),
+        dbc.Col([
             html.Label('Coordenação:', className="fw-bold"),
             dcc.Dropdown(opcoes_coordenacao, value=['Todas'], id='lista_coordenação', multi=True),
-        ], md=4, className="mb-3"),
+        ], md=2, className="mb-3"),
         
         dbc.Col([
             html.Label('Projeto/Atividade:', className="fw-bold"),
             dcc.Dropdown(id='lista_projeto_atividade', value=['Todos'], multi=True),
-        ], md=4, className="mb-3"),
+        ], md=2, className="mb-3"),
         
         dbc.Col([
             html.Label('Elemento de Despesa:', className="fw-bold"),
             dcc.Dropdown(opcoes_elemento, value=['Todos'], id='lista_elemento', multi=True),
-        ], md=4, className="mb-3"),
+        ], md=3, className="mb-3"),
     ]),
     
     dbc.Row([
         dbc.Col([
             html.Label('Despesa (Código):', className="fw-bold"),
             dcc.Dropdown(opcoes_despesa, value=['Todos'], id='lista_despesa', multi=True),
-        ], md=6, className="mb-3"),
+        ], md=3, className="mb-3"),
         
         dbc.Col([
             html.Label('Colunas a Exibir:', className="fw-bold"),

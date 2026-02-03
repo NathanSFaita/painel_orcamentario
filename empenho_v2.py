@@ -38,69 +38,74 @@ params_emp = {
 }	
 
 df_parcial = pd.DataFrame()
+requisicoes = 0
 requisicao = 0
+lista_orgaos = ["08", "34", "78", "90"]
 
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
-#params_emp["codUnidade"] = 10
-ano = "2025"
-mes = "12"
-num_pagina = fazer_requisicao("empenhos", params=params_emp)
-df_paginas = pd.json_normalize(num_pagina["metaDados"])
-requisicoes = df_paginas["qtdPaginas"][0]
+
+for orgao in lista_orgaos:
+    params_emp["codOrgao"] = orgao
+    num_pagina = fazer_requisicao("empenhos", params=params_emp)
+    df_paginas = pd.json_normalize(num_pagina["metaDados"])
+    requisicoes += df_paginas["qtdPaginas"][0]
 
 print("Total de requisições:", requisicoes)
 
 for i in range(requisicoes):
-    requisicao += 1
-    print("Requisição:", requisicao, "de", requisicoes)
     
-    params_emp["anoEmpenho"] = ano
-    params_emp["mesEmpenho"] = mes
-    params_emp["numPagina"] = requisicao
+    for orgao in lista_orgaos:
+        requisicao += 1
+        print("Requisição:", requisicao, "de", requisicoes)
+    
+        params_emp["codOrgao"] = orgao
+        params_emp["anoEmpenho"] = ano
+        params_emp["mesEmpenho"] = mes
+        params_emp["numPagina"] = requisicao
 
-    empenhos = fazer_requisicao("empenhos", params=params_emp)
+        empenhos = fazer_requisicao("empenhos", params=params_emp)
 
-    print("\x1b[F" * 1, end="") # Mover o cursor duas linhas para cima
+        print("\x1b[F" * 1, end="") # Mover o cursor duas linhas para cima
 
-    if empenhos is None:
-        continue
+        if empenhos is None:
+            continue
 
-    else:
-        df_empenhos = pd.json_normalize(empenhos["lstEmpenhos"])
+        else:
+            df_empenhos = pd.json_normalize(empenhos["lstEmpenhos"])
 
-        orgao = df_empenhos["codOrgao"][0]
-        uo = df_empenhos["codUnidade"][0]
-        funcao = df_empenhos["codFuncao"][0]
-        subfuncao = df_empenhos["codSubFuncao"][0]
-        programa = df_empenhos["codPrograma"][0]
-        proj_ativ = df_empenhos["codProjetoAtividade"][0]
-        despesa = "".join([
-            str(df_empenhos["codCategoria"][0]), 
-            str(df_empenhos["codGrupo"][0]), 
-            str(df_empenhos["codModalidade"][0]), 
-            str(df_empenhos["codElemento"][0]),
-            "00"
-        ])
-        df_empenhos["dotacao_completa"] = "".join([
-            str(orgao),
-            ".", 
-            str(uo),
-            ".", 
-            str(funcao),
-            ".", 
-            str(subfuncao),
-            ".", 
-            str(programa), 
-            ".",
-            str(proj_ativ),
-            ".", 
-            str(despesa)
-        ])
+            orgao = df_empenhos["codOrgao"][0]
+            uo = df_empenhos["codUnidade"][0]
+            funcao = df_empenhos["codFuncao"][0]
+            subfuncao = df_empenhos["codSubFuncao"][0]
+            programa = df_empenhos["codPrograma"][0]
+            proj_ativ = df_empenhos["codProjetoAtividade"][0]
+            despesa = "".join([
+                str(df_empenhos["codCategoria"][0]), 
+                str(df_empenhos["codGrupo"][0]), 
+                str(df_empenhos["codModalidade"][0]), 
+                str(df_empenhos["codElemento"][0]),
+                "00"
+            ])
+            df_empenhos["dotacao_completa"] = "".join([
+                str(orgao),
+                ".", 
+                str(uo),
+                ".", 
+                str(funcao),
+                ".", 
+                str(subfuncao),
+                ".", 
+                str(programa), 
+                ".",
+                str(proj_ativ),
+                ".", 
+                str(despesa)
+            ])
 
-        df_parcial = pd.concat([df_parcial, df_empenhos], ignore_index=True)
-        continue
+            df_parcial = pd.concat([df_parcial, df_empenhos], ignore_index=True)
+            continue
 
 ordem_colunas = [
     "codEmpresa",
