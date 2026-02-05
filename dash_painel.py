@@ -58,6 +58,16 @@ def carrega_base(ano, mes):
 base_despesas = carrega_base(ano_padrao, mes_padrao)
 
 def gera_pivot(base_despesas):
+    index = [
+        "orgao",
+        "projeto_atividade",
+        "coordenação",
+        "acao_programatica",
+        "despesa",
+        "nome_elemento",
+        "vinculacao",
+        "ds_fonte"
+    ]
     colunas = [
         "valOrcadoInicial",
         "valOrcadoAtualizado",
@@ -71,7 +81,7 @@ def gera_pivot(base_despesas):
         "data_hora_extracao"
     ]
     pivot = base_despesas.pivot_table(
-        index=["orgao", "projeto_atividade", "coordenação", "despesa", "nome_elemento"],   
+        index=index,   
         values=colunas,
         aggfunc="sum",
         fill_value=0
@@ -94,7 +104,9 @@ opcoes_coordenacao = ordena_alfabetica(pivot["coordenação"].unique()) + ["Toda
 opcoes_elemento = ordena_alfabetica(pivot["nome_elemento"].unique()) + ["Todos"]
 opcoes_despesa = ordena_numerica(pivot["despesa"].unique()) + ["Todos"]
 opcoes_projeto_atividade = ordena_numerica(pivot["projeto_atividade"].unique()) + ["Todos"]
-
+opcoes_acao = ordena_alfabetica(pivot["acao_programatica"].unique()) + ["Todos"]
+opcoes_vinculacao = ordena_numerica(pivot["vinculacao"].unique()) + ["Todos"]
+opcoes_fonte = ordena_alfabetica(pivot["ds_fonte"].unique()) + ["Todos"]
 
 colunas_brl = [
     "valOrcadoInicial",
@@ -111,8 +123,10 @@ colunas_exibir = [
     "orgao",
     "projeto_atividade",
     "coordenação",
+    "acao_programatica",
     "despesa",
     "nome_elemento",
+    "ds_fonte",
     "valOrcadoInicial",
     "valOrcadoAtualizado",
     "Congelado",
@@ -144,7 +158,7 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Img(src=os.path.join("assets", "smdhc_logo.png"), style={"height": "100px", "marginTop": "10px"}),
-            html.H1("📊 Painel Orçamentário", className="text-center mb-4 mt-4", 
+            html.H1("📊 Painel Orçamentário SMDHC", className="text-center mb-4 mt-4", 
                     style={"color": "#1f77b4", "fontWeight": "bold"}
                     ),
             html.Hr()
@@ -152,20 +166,12 @@ app.layout = dbc.Container([
     ]),
     
     dbc.Row([
-        dbc.Col([
-            html.H4("Execução Orçamentária - Secretaria Municipal de Direitos Humanos e Cidadania", 
-                    className="text-center mb-4",
-                    style={"color": "#35ca4eb1", "fontWeight": "bold"}
-                    )
-        ])
-    ]),
-    dbc.Row([
-        html.H5("Filtros", className="fw-bold mb-3")
+        html.H5("Filtros", className="fw-bold")
     ]),
     dbc.Row([
         dbc.Col([
             #html.H5("Filtros", className="fw-bold mb-3"),
-            html.Label("Ano:", className="fw-bold mt-4"),
+            html.Label("Ano:", className="fw-bold"),
             dcc.Dropdown(
                 id="dropdown_ano",
                 options=[{"label": a, "value": a} for a in anos_disponiveis],
@@ -176,7 +182,7 @@ app.layout = dbc.Container([
         ], md=1, className="mb-1"),
         
         dbc.Col([
-            html.Label("Mês:", className="fw-bold mt-4"),
+            html.Label("Mês:", className="fw-bold"),
             dcc.Dropdown(
                 id="dropdown_mes",
                 options=[{"label": m, "value": m} for m in meses_disponiveis],
@@ -189,7 +195,7 @@ app.layout = dbc.Container([
     
     dbc.Row([
         dbc.Col([
-            html.Label("Órgão:", className="fw-bold mt-4"),
+            html.Label("Órgão:", className="fw-bold"),
             dcc.Dropdown(opcoes_orgao, value=['Todos'], id='lista_orgao', multi=True),
         ], md=2, className="mb-3"),
         dbc.Col([
@@ -197,6 +203,11 @@ app.layout = dbc.Container([
             dcc.Dropdown(opcoes_coordenacao, value=['Todas'], id='lista_coordenação', multi=True),
         ], md=2, className="mb-3"),
         
+        dbc.Col([
+            html.Label('Ação Programática:', className="fw-bold"),
+            dcc.Dropdown(opcoes_acao, value=['Todas'], id='lista_acao', multi=True),
+        ], md=2, className="mb-3"),
+
         dbc.Col([
             html.Label('Projeto/Atividade:', className="fw-bold"),
             dcc.Dropdown(id='lista_projeto_atividade', value=['Todos'], multi=True),
@@ -212,33 +223,55 @@ app.layout = dbc.Container([
         dbc.Col([
             html.Label('Despesa (Código):', className="fw-bold"),
             dcc.Dropdown(opcoes_despesa, value=['Todos'], id='lista_despesa', multi=True),
-        ], md=3, className="mb-3"),
+        ], md=2, className="mb-3"),
         
         dbc.Col([
             html.Label('Colunas a Exibir:', className="fw-bold"),
             dcc.Dropdown(
                 id='ordem_colunas',
                 options=[{"label": c, "value": c} for c in colunas_exibir],
-                value=colunas_exibir,
+                value=[],
                 multi=True,
                 placeholder='Selecione as colunas...'
             ),
-        ], md=6, className="mb-3"),
+        ], md=2, className="mb-3"),
+
+        dbc.Col([
+            html.Label('Vinculação:', className="fw-bold"),
+            dcc.Dropdown(
+                id='lista_vinculacao',
+                options=[{"label": c, "value": c} for c in opcoes_vinculacao],
+                value=['Todos'],
+                multi=True,
+                placeholder='Selecione...'
+            ),
+        ], md=2, className="mb-3"),
+        
+        dbc.Col([
+            html.Label('Fonte:', className="fw-bold"),
+            dcc.Dropdown(
+                id='lista_fonte',
+                options=[{"label": c, "value": c} for c in opcoes_fonte],
+                value=['Todos'],
+                multi=True,
+                placeholder='Selecione...'
+            ),
+        ], md=4, className="mb-3"),
     ]),
     
     dbc.Row([
         dbc.Col([
             dbc.Button("🗑️ Limpar Filtros", id='botao_limpar', color="warning", className="me-2", n_clicks=0),
-            dbc.Button("📥 Download XLSX", id="botao_download_xlsx", color="success"),
+            dbc.Button("📥 Download da Tabela", id="botao_download_xlsx", color="success"),
             dcc.Download(id="download_xlsx"),
-        ], className="mb-4")
+        ], className="mb-4 mt-4")
     ]),
     
     dbc.Row([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H5("Execução Orçamentária", className="card-title fw-bold"),
+                    html.H5("Resumo da Execução Orçamentária", className="card-title fw-bold"),
                     dbc.Row([
                         dbc.Col([
                             dbc.Card([
@@ -315,12 +348,13 @@ app.layout = dbc.Container([
     
     dbc.Row([
         dbc.Col([
+            html.H6("Detalhamento da Execução Orçamentária", className="card-title fw-bold"),
             dt.DataTable(
                 id='tabela_dinamica',
                 data=pivot[colunas_exibir].to_dict('records'),
                 columns=columns,
-                style_table={'overflowX': 'auto', 'height': '600px', 'overflowY': 'auto'},
-                style_cell={'textAlign': 'left', 'padding': '10px', 'fontFamily': 'Arial, sans-serif'},
+                style_table={'overflowX': 'auto', 'height': '500px', 'overflowY': 'auto'},
+                style_cell={'textAlign': 'left', 'padding': '10px', 'fontFamily': 'Arial, sans-serif', 'padding': '5px', 'fontSize': '14px'},
                 style_header={'backgroundColor': '#1f77b4', 'color': 'white', 'fontWeight': 'bold'},
                 style_data_conditional=[
                     {'if': {'row_index': 'odd'}, 'backgroundColor': '#f9f9f9'},
@@ -346,38 +380,51 @@ def atualiza_meses(ano):
     Output('tabela_dinamica', 'data'),
     Output('tabela_dinamica', 'columns'),
     Output('lista_coordenação', 'value'),
+    Output('lista_acao', 'value'),
     #Output('resumo_valores', 'children'),
     Output('lista_orgao', 'value'),
     Output('lista_projeto_atividade', 'value'),
     Output('lista_elemento', 'value'),
     Output('lista_despesa', 'value'),
+    Output('lista_vinculacao', 'value'),
+    Output('lista_fonte', 'value'),
     Output('data_hora_atualizacao', 'children'),
     Output('lista_orgao', 'options'),
     Output('lista_coordenação', 'options'),
     Output('lista_projeto_atividade', 'options'),
+    Output('lista_acao', 'options'),
     Output('lista_elemento', 'options'),
     Output('lista_despesa', 'options'),
     Output('ordem_colunas', 'options'),
+    Output('lista_vinculacao', 'options'),
+    Output('lista_fonte', 'options'),
     Input('lista_orgao', 'value'),
     Input('lista_coordenação', 'value'),
     Input('lista_projeto_atividade', 'value'),
+    Input('lista_acao', 'value'),
     Input('lista_elemento', 'value'),
     Input('lista_despesa', 'value'),
     Input('dropdown_ano', 'value'),
     Input('dropdown_mes', 'value'),
     Input('botao_limpar', 'n_clicks'),
     Input('ordem_colunas', 'value'),
+    Input('lista_vinculacao', 'value'),
+    Input('lista_fonte', 'value'),
     prevent_initial_call=False
 )
-def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano, mes, n_clicks, ordem_colunas):
+def update_output(orgao, coordenacao, projeto_atividade, acao, elemento, despesa, ano, mes, n_clicks, ordem_colunas, vinculacao, fonte):
     # Se o botão foi clicado, limpa todos os filtros
     ctx = callback_context
     if ctx.triggered and ctx.triggered[0]['prop_id'] == 'botao_limpar.n_clicks':
         orgao = ['Todos']
         coordenacao = ['Todas']
         projeto_atividade = ['Todos']
+        acao = ['Todas']
         elemento = ['Todos']
         despesa = ['Todos']
+        vinculacao = ['Todos']
+        fonte = ['Todos']
+        ordem_colunas = []
 
     # Se nenhuma coluna foi selecionada, exibe todas
     if not ordem_colunas:
@@ -392,15 +439,21 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
     opcoes_orgao = ordena_alfabetica(pivot["orgao"].unique()) + ["Todos"]
     opcoes_coordenacao = ordena_alfabetica(pivot["coordenação"].unique()) + ["Todas"]
     opcoes_projeto_atividade = ordena_numerica(pivot["projeto_atividade"].unique()) + ["Todos"]
+    opcoes_acao = ordena_alfabetica(pivot["acao_programatica"].unique()) + ["Todas"]
     opcoes_elemento = ordena_alfabetica(pivot["nome_elemento"].unique()) + ["Todos"]
     opcoes_despesa = ordena_numerica(pivot["despesa"].unique()) + ["Todos"]
+    opcoes_vinculacao = ordena_numerica(pivot["vinculacao"].unique()) + ["Todos"]
+    opcoes_fonte = ordena_alfabetica(pivot["ds_fonte"].unique()) + ["Todos"]
 
     # Converte None em lista padrão
     orgao = orgao if orgao else ["Todos"]
     coordenacao = coordenacao if coordenacao else ["Todas"]
     projeto_atividade = projeto_atividade if projeto_atividade else ["Todos"]
+    acao = acao if acao else ["Todas"]
     elemento = elemento if elemento else ["Todos"]
     despesa = despesa if despesa else ["Todos"]
+    vinculacao = vinculacao if vinculacao else ["Todos"]
+    fonte = fonte if fonte else ["Todos"]
 
     # Remove "Todos"/"Todas" se houver outros selecionados
     if "Todos" in orgao and len(orgao) > 1:
@@ -409,10 +462,16 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         coordenacao = [v for v in coordenacao if v != "Todas"]
     if "Todos" in projeto_atividade and len(projeto_atividade) > 1:
         projeto_atividade = [v for v in projeto_atividade if v != "Todos"]
+    if "Todas" in acao and len(acao) > 1:
+        acao = [v for v in acao if v != "Todas"]
     if "Todos" in elemento and len(elemento) > 1:
         elemento = [v for v in elemento if v != "Todos"]
     if "Todos" in despesa and len(despesa) > 1:
         despesa = [v for v in despesa if v != "Todos"]
+    if "Todos" in vinculacao and len(vinculacao) > 1:
+        vinculacao = [v for v in vinculacao if v != "Todos"]
+    if "Todos" in fonte and len(fonte) > 1:
+        fonte = [v for v in fonte if v != "Todos"]
 
     # Sincronização inteligente entre despesa e elemento
     # Só sincroniza se um deles não está em "Todos"
@@ -441,10 +500,16 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         tabela = tabela[tabela["coordenação"].isin(coordenacao)]
     if projeto_atividade != ["Todos"]:
         tabela = tabela[tabela["projeto_atividade"].isin(projeto_atividade)]
+        if acao != ["Todas"]:
+            tabela = tabela[tabela["acao_programatica"].isin(acao)]
     if elemento != ["Todos"]:
         tabela = tabela[tabela["nome_elemento"].isin(elemento)]
     if despesa != ["Todos"]:
         tabela = tabela[tabela["despesa"].isin(despesa)]
+    if vinculacao != ["Todos"]:
+        tabela = tabela[tabela["vinculacao"].isin(vinculacao)]
+    if fonte != ["Todos"]:
+        tabela = tabela[tabela["ds_fonte"].isin(fonte)]
     
     # Seleciona apenas as colunas desejadas na ordem definida
     #tabela = tabela[ordem_final]
@@ -454,8 +519,11 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         "orgao": "Órgão",
         "projeto_atividade": "Ação",
         "coordenação": "Coordenação",
+        "acao_programatica": "Atividade",
         "despesa": "Código Despesa",
         "nome_elemento": "Elemento de Despesa",
+        "vinculacao": "Vinculação",
+        "ds_fonte": "Fonte",
         "valOrcadoInicial": "Orçado Inicial",
         "valOrcadoAtualizado": "Orçado Atualizado",
         "valDisponivel": "Disponível",
@@ -550,18 +618,24 @@ def update_output(orgao, coordenacao, projeto_atividade, elemento, despesa, ano,
         tabela.to_dict('records'),
         columns_dinamicas,
         coordenacao,
+        acao,
         #resumo,
         orgao,
         projeto_atividade,
         elemento,
         despesa,
+        vinculacao,
+        fonte,
         f"Atualizado em: {data_atualizacao_str}",
         [{"label": o, "value": o} for o in opcoes_orgao],
         [{"label": c, "value": c} for c in opcoes_coordenacao],
         [{"label": p, "value": p} for p in opcoes_projeto_atividade],
+        [{"label": a, "value": a} for a in opcoes_acao],
         [{"label": e, "value": e} for e in opcoes_elemento],
         [{"label": d, "value": d} for d in opcoes_despesa],
-        [{"label": c, "value": c} for c in colunas_exibir]
+        [{"label": c, "value": c} for c in colunas_exibir],
+        [{"label": v, "value": v} for v in opcoes_vinculacao],
+        [{"label": f, "value": f} for f in opcoes_fonte]
     )
 
 @app.callback(

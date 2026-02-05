@@ -23,7 +23,8 @@ def main():
     dt_inicio = datetime.fromtimestamp(inicio, tz=tz_brasilia)
     ano = str(dt_inicio.year)
     mes = str(dt_inicio.month)
-
+    if dt_inicio.month < 10:
+       mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
     # Configurações iniciais
     TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
     #TOKEN = os.getenv("API_TOKEN_SF")
@@ -38,17 +39,14 @@ def main():
         "Content-Type": "application/json"
     }
 
-    if dt_inicio.month < 10:
-        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10
-
     URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
-
+    
     orgaos_list = [8, 34, 78, 90]
 
     orcamento = pd.read_excel(URL_ORC)
     orcamento_smdhc = orcamento[orcamento["Cd_Orgao"].isin(orgaos_list)]
     num_linhas = orcamento_smdhc.shape[0]
-
+    
     baseaux_path = os.path.dirname(__file__)
     procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
     procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
@@ -87,22 +85,22 @@ def main():
             sys.exit(1)
 
         # Verificação específica para o endpoint 'despesas'
-        if endpoint == "despesas":
-            if not isinstance(payload, dict):
-                print("Payload inesperado para 'despesas' (não é dict). Abortando.")
-                print("params enviados:", params)
-                sys.exit(1)
-            lst = payload.get("lstDespesas", None)
-            if lst is None:
-                print("Campo 'lstDespesas' ausente na resposta da API para 'despesas'. Abortando.")
-                print("params enviados:", params)
-                print("resposta (parcial):", str(payload)[:1000])
-                sys.exit(1)
-            if isinstance(lst, list) and len(lst) == 0:
-                print("Campo 'lstDespesas' está vazio na resposta da API para 'despesas'. Abortando.")
-                print("params enviados:", params)
-                print("resposta (parcial):", str(payload)[:1000])
-                sys.exit(1)
+        # if endpoint == "despesas":
+        #     if not isinstance(payload, dict):
+        #         print("Payload inesperado para 'despesas' (não é dict). Abortando.")
+        #         print("params enviados:", params)
+        #         sys.exit(1)
+        #     lst = payload.get("lstDespesas", None)
+        #     if lst is None:
+        #         print("Campo 'lstDespesas' ausente na resposta da API para 'despesas'. Abortando.")
+        #         print("params enviados:", params)
+        #         print("resposta (parcial):", str(payload)[:1000])
+        #         sys.exit(1)
+        #     if isinstance(lst, list) and len(lst) == 0:
+        #         print("Campo 'lstDespesas' está vazio na resposta da API para 'despesas'. Abortando.")
+        #         print("params enviados:", params)
+        #         print("resposta (parcial):", str(payload)[:1000])
+        #         sys.exit(1)
 
         return payload
 
@@ -196,11 +194,12 @@ def main():
         print(
             f"Previsão de término: {horario_termino_str} ", end=""
         )
-        print("\x1b[F" * 3, end="")  # Move o cursor para cima uma linha]
+        print("\x1b[F" * 4, end="")  # Move o cursor para cima uma linha]
         
         if proj_ativ < 8000:
             coordenacao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "coordenadoria"].values
             politicas_para = procv_acao.loc[procv_acao["acao"] == proj_ativ, "politicas_para"].values
+            acao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "acao_programatica"].values
             # Corrige para garantir valor padrão
             if len(coordenacao) > 0:
                 coordenacao_val = coordenacao[0]
@@ -210,9 +209,14 @@ def main():
                 politicas_para_val = politicas_para[0]
             else:
                 politicas_para_val = "Não encontrado"
+            if len(acao) > 0:
+                acao_val = acao[0]
+            else:
+                acao = "Não encontrado"
         else:
             coordenacao_val = "Emenda"
             politicas_para_val = "Emenda"
+            acao_val = "Emenda"
 
         elemento_despesa = categoria + grupo + modalidade + elemento + "00"
         nome_elemento = procv_elemento.loc[procv_elemento["num_elemento"] == int(elemento_despesa), "elemento_despesa"].values
@@ -230,9 +234,10 @@ def main():
         df_despesas["projeto_atividade"] = proj_ativ
         df_despesas["coordenação"] = coordenacao_val
         df_despesas["politicas_para"] = politicas_para_val
+        df_despesas["acao_programatica"] = acao_val
         df_despesas["despesa"] = elemento_despesa
         df_despesas["vinculacao"] = vinculacao
-        df_despesas["ds_fonte"] = ds_vinculacao
+        #df_despesas["ds_fonte"] = ds_vinculacao
 
         # Corrige o erro de atribuição
         if len(nome_elemento) > 0:
@@ -243,34 +248,30 @@ def main():
 
     # busca da fonte de recursos
         
-        # fonte_recursos = f"{fonte}.{referencia}.{destinacao}.{vinculacao}"
+        fonte_recursos = f"{fonte}.{referencia}.{destinacao}.{vinculacao}"
 
-        # if fonte_recursos == "00.1.500.9001":
-        #     df_despesas["ds_fonte"] = "Recursos não vinculados de Impostos"
-        # else:
-        #     params_fonte = {
-        #         "anoExercicio": ano,
-        #         "codFonteRecurso": fonte,
-        #         "codReferencia": referencia,
-        #         "codDestinacaoRecurso": destinacao,
-        #         "codVinculacaoRecurso": vinculacao
-        #     }
-        #     fonte_recursos_response = fazer_requisicao("fonteRecursos", params=params_fonte)
-        #     df_fonte = pd.json_normalize(fonte_recursos_response["lstFonteRecurso"])
-            
-        #     # Validação e tratamento de erro
-        #     if df_fonte.empty:
-        #         print(f"Aviso: Resposta vazia para fonte_recursos={fonte_recursos}")
-        #         df_despesas["ds_fonte"] = "Não encontrado"
-        #     elif "txtDescricaoFonteRecurso" not in df_fonte.columns:
-        #         print(f"Aviso: Coluna 'txtDescricaoFonteRecurso' não encontrada")
-        #         print(f"Colunas disponíveis: {list(df_fonte.columns)}")
-        #         df_despesas["ds_fonte"] = "Não encontrado"
-        #     else:
-        #         df_despesas["ds_fonte"] = df_fonte["txtDescricaoFonteRecurso"].iloc[0]
+
+        params_fonte = {
+            "anoExercicio": ano,
+            "codFonteRecurso": fonte,
+            "codReferencia": referencia,
+            "codDestinacaoRecurso": destinacao,
+            "codVinculacaoRecurso": vinculacao
+            }
+        fonte_recursos_response = fazer_requisicao("fonteRecursos", params=params_fonte)
+        df_fonte = pd.json_normalize(fonte_recursos_response["lstFonteRecurso"])
+        
+        # Validação e tratamento de erro
+        if df_fonte.empty:
+            df_despesas["ds_fonte"] = "Não encontrado"
+        elif "txtDescricaoFonteRecurso" not in df_fonte.columns:
+            df_despesas["ds_fonte"] = "Não encontrado"
+        else:
+            df_despesas["ds_fonte"] = df_fonte["txtDescricaoFonteRecurso"].iloc[0]
 
 
         df_final = pd.concat([df_final, df_despesas], ignore_index=True)
+        time.sleep(0.2)  # Pequena pausa para evitar sobrecarga na API
 
     ordem_colunas =     [
         "orgao",
@@ -308,7 +309,7 @@ def main():
 
     # Adiciona a coluna com data e hora da extração
     df_final["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))
-   
+
     # ✅ CORRIGIDO: Filtra apenas colunas que existem
     colunas_existentes = [col for col in ordem_colunas if col in df_final.columns]
     colunas_existentes.append("data_hora_extracao")
@@ -322,7 +323,7 @@ def main():
     # Agora salve o arquivo normalmente
     caminho_despesas = os.path.join(pasta_ano, f"despesas_{ano}{mes}.xlsx")
     df_final.to_excel(caminho_despesas,index=False)
-     
+    
     print(f"Dados salvos em {caminho_despesas}")
 
     fim = time.time()

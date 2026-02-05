@@ -16,7 +16,7 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # importante para evitar conflitos de push
+          fetch-depth: 0   # evita conflitos de push
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -33,7 +33,7 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
 
-      - name: Executar coleta de despesas
+      - name: Executar coleta de despesas (atualiza Excel)
         env:
           API_TOKEN_SF: ${{ secrets.API_TOKEN_SF }}
         run: |
@@ -47,8 +47,8 @@ jobs:
         run: |
           echo "ultima_execucao=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" > version.txt
 
-      - name: Commit TUDO (base + versão) e enviar ao GitHub
+      - name: Commit e push (base + rastro + versão)
         run: |
           git add base_despesas version.txt
-          git commit -m "Atualização automática diária da base" --allow-empty
+          git commit -m "Atualização automática diária da base" || echo "Nada para commitar"
           git push origin main
