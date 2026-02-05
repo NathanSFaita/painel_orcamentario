@@ -130,42 +130,40 @@ for orgao_api in lista_orgaos:
                 str(despesa)
             ])
 
-        nome_orgao = procv_orgao.loc[procv_orgao["cod_orgao"] == int(orgao), "orgao"].values
-        df_empenhos["orgao"] = nome_orgao[0]
-        if uo == "20":
-            df_empenhos["orgao"] = "FUMCAF"
-
-        if int(proj_ativ) < 8000:
-            coordenacao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "coordenadoria"].values
-            politicas_para = procv_acao.loc[procv_acao["acao"] == proj_ativ, "politicas_para"].values
-            acao = procv_acao.loc[procv_acao["acao"] == proj_ativ, "acao_programatica"].values
-            # Corrige para garantir valor padrão
-            if len(coordenacao) > 0:
-                coordenacao_val = coordenacao[0]
-            else:
-                coordenacao_val = "Não encontrado"
-
-            if len(politicas_para) > 0:
-                politicas_para_val = politicas_para[0]
-            else:
-                politicas_para_val = "Não encontrado"
-
-            if len(acao) > 0:
-                acao_val = acao[0]
-            else:
-                acao_val = "Não encontrado"
-                
-            df_empenhos["coordenacao"] = coordenacao_val
-            df_empenhos["politicas_para"] = politicas_para_val
-            df_empenhos["acao_programatica"] = acao_val
-
-        else:
-            coordenacao_val = "Emenda"
-            politicas_para_val = "Emenda"
-            acao_val = "Emenda"
-
         df_parcial = pd.concat([df_parcial, df_empenhos], ignore_index=True)
         continue
+
+if not df_parcial.empty:
+    df_parcial["codOrgao"] = pd.to_numeric(df_parcial["codOrgao"], errors="coerce").astype("Int64")
+    df_parcial["codUnidade"] = pd.to_numeric(df_parcial["codUnidade"], errors="coerce").astype("Int64")
+    df_parcial["codProjetoAtividade"] = pd.to_numeric(
+        df_parcial["codProjetoAtividade"], errors="coerce"
+    ).astype("Int64")
+
+    procv_orgao["cod_orgao"] = pd.to_numeric(procv_orgao["cod_orgao"], errors="coerce").astype("Int64")
+    procv_acao["acao"] = pd.to_numeric(procv_acao["acao"], errors="coerce").astype("Int64")
+
+    df_parcial = df_parcial.merge(
+        procv_orgao[["cod_orgao", "orgao"]],
+        left_on="codOrgao",
+        right_on="cod_orgao",
+        how="left"
+    )
+
+    df_parcial = df_parcial.merge(
+        procv_acao[["acao", "coordenadoria", "politicas_para", "acao_programatica"]],
+        left_on="codProjetoAtividade",
+        right_on="acao",
+        how="left"
+    ).rename(columns={"coordenadoria": "coordenacao"})
+
+    df_parcial.loc[df_parcial["codUnidade"] == 20, "orgao"] = "FUMCAF"
+
+    mask_emenda = df_parcial["codProjetoAtividade"] >= 8000
+    df_parcial.loc[mask_emenda, ["coordenacao", "politicas_para", "acao_programatica"]] = "Emenda"
+
+    for col in ["orgao", "coordenacao", "politicas_para", "acao_programatica"]:
+        df_parcial[col] = df_parcial[col].fillna("N?o encontrado")
 
 ordem_colunas = [
     "codEmpresa",
@@ -234,14 +232,12 @@ def extrai_anexo(anexos):
         return anexos[0]
     return {}
 
-# Cria um DataFrame só com os dados extraídos
-anexos_expandido = df_parcial["anexos"].apply(extrai_anexo).apply(pd.Series)
+# Cria um DataFrame s? com os dados extra?dos
+if "anexos" in df_parcial.columns:
+    anexos_expandido = df_parcial["anexos"].apply(extrai_anexo).apply(pd.Series)
+    anexos_expandido = anexos_expandido.add_prefix("anexo_")
+    df_parcial = pd.concat([df_parcial.drop(columns=["anexos"]), anexos_expandido], axis=1)
 
-# Renomeia as colunas para evitar conflitos
-anexos_expandido = anexos_expandido.add_prefix("anexo_")
-
-# Junta ao DataFrame original (removendo a coluna "anexos" se quiser)
-df_parcial = pd.concat([df_parcial.drop(columns=["anexos"]), anexos_expandido], axis=1)
 
 caminho_arquivo = os.path.join("base_empenhos", f"empenhos_{ano}.xlsx")
 df_parcial.to_excel(caminho_arquivo, index=False)
