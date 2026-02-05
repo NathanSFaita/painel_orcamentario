@@ -339,8 +339,18 @@ app.layout = dbc.Container([
                             ], className="mb-3", style={"backgroundColor": "#e6ffe6"})
                         ], md=3),
                     ]),
-                    html.Div(id="data_hora_atualizacao", className="text-muted mt-3", style={"fontSize": "12px"}),
-                    html.Div("Fonte: API-SOF", className="text-muted", style={"fontSize": "12px", "marginTop": "5px"})
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div("Desenvolvido pela Coordenadoria de Planejamento e Informação (CPI)", 
+                                     className="text-muted mt-3", style={"fontSize": "12px"}),
+                            html.Div("Dúvidas: (11) 2833-4893 | e-mail: nsfaita@prefeitura.sp.gov.br", 
+                                     className="text-muted", style={"fontSize": "12px", "marginTop": "5px"})
+                        ], className="text-start"),
+                        dbc.Col([
+                            html.Div(id="data_hora_atualizacao", className="text-muted mt-3", style={"fontSize": "12px"}),
+                            html.Div("Fonte: API-SOF", className="text-muted", style={"fontSize": "12px", "marginTop": "5px"})
+                        ], className="text-end")
+                    ])
                 ])
             ], className="mb-4")
         ])
