@@ -9,7 +9,7 @@ from filtros import ano_padrao
 
 # Inicialização do App
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True, title="Painel Orçamentário")
-app._favicon = "smdhc_logo.png"
+app._favicon = "pmsp_logo.png"
 server = app.server
 
 app.layout = html.Div([
