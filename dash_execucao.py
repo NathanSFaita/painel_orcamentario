@@ -12,7 +12,8 @@ from gerar_pdf import criar_relatorio_execucao_pdf
 def layout_execucao():
     return dbc.Container([
         cabecalho_padrao("📊 Painel Orçamentário", "📈 Execução Orçamentária"),
-        html.Div(id="exe-info-atualizacao"),
+        html.Div(id="exe-cards-container", className="mb-4"),
+        
         layout_filtros_padrao("exe"),
         
         dbc.Row([
@@ -21,8 +22,7 @@ def layout_execucao():
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4")], md=2),
         ], className="mb-4", justify="center"),
 
-        html.Div(id="exe-cards-container", className="mb-4"),
-
+        html.Div(id="exe-info-atualizacao"),
         html.H5("Detalhamento", className="fw-bold"),
         dt.DataTable(
             id="exe-tabela",

@@ -14,7 +14,10 @@ from gerar_pdf import criar_relatorio_empenho_pdf
 def layout_empenhos():
     return dbc.Container([
         cabecalho_padrao("📊 Painel Orçamentário", "💰 Consulta de Empenhos"),
-        html.Div(id="emp-info-atualizacao"),
+        
+        # CARDS + INFO ATUALIZAÇÃO
+        html.Div(id="emp-cards-container", className="mb-4"),
+        
         layout_filtros_padrao("emp"),
         
         dbc.Row([
@@ -26,12 +29,9 @@ def layout_empenhos():
         dbc.Row([
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="emp-btn-limpar", color="warning", className="w-100 mt-4")], md=2),
             dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", color="secondary", className="w-100 mt-4")], md=2),
-        ], className="mb-4", justify="center"),
-
-
-        # CARDS
-        html.Div(id="emp-cards-container", className="mb-4"),
-
+        ], className="mb-4", justify="center"),           
+        html.Div(id="emp-info-atualizacao"),
+        
         # TABELA
         html.H5("Lista de Empenhos", className="fw-bold"),
         dt.DataTable(
