@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+import pytz
 import time
 import os
 
@@ -34,6 +35,7 @@ if dt_inicio.month < 10:
 baseaux_path = os.path.dirname(__file__)
 procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
 procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
+procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
 
 params_emp = {
     "anoEmpenho": "",
@@ -46,6 +48,7 @@ requisicoes = 0
 requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
+ano = "2023"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
@@ -74,19 +77,7 @@ for orgao_api in lista_orgaos:
         print("Requisição:", requisicao, "de", requisicoes)
 
         print(f"Órgão: {orgao_api} - Página: {pagina}/{paginas}")
-# for i in range(requisicoes):
-#     pagina = 0
-#     for orgao in lista_orgaos:
-#         pagina += 1
-#         requisicao += 1
-#         print("Requisição:", requisicao, "de", requisicoes)
-        
-#         params_emp["codOrgao"] = orgao
-#         num_pagina = fazer_requisicao("empenhos", params=params_emp)
-#         df_paginas = pd.json_normalize(num_pagina["metaDados"])
-#         paginas = df_paginas["qtdPaginas"][0]
 
-        #params_emp["codOrgao"] = orgao
         params_emp["anoEmpenho"] = ano
         params_emp["mesEmpenho"] = mes
         params_emp["numPagina"] = pagina
@@ -101,34 +92,61 @@ for orgao_api in lista_orgaos:
         else:
             df_empenhos = pd.json_normalize(empenhos["lstEmpenhos"])
 
-            orgao_api = df_empenhos["codOrgao"][0]
-            uo = df_empenhos["codUnidade"][0]
-            funcao = df_empenhos["codFuncao"][0]
-            subfuncao = df_empenhos["codSubFuncao"][0]
-            programa = df_empenhos["codPrograma"][0]
-            proj_ativ = str(df_empenhos["codProjetoAtividade"][0])
-            despesa = "".join([
-                str(df_empenhos["codCategoria"][0]), 
-                str(df_empenhos["codGrupo"][0]), 
-                str(df_empenhos["codModalidade"][0]), 
-                str(df_empenhos["codElemento"][0]),
-                "00"
-            ])
-            df_empenhos["dotacao_completa"] = "".join([
-                str(orgao_api),
-                ".", 
-                str(uo),
-                ".", 
-                str(funcao),
-                ".", 
-                str(subfuncao),
-                ".", 
-                str(programa), 
-                ".",
-                str(proj_ativ),
-                ".", 
-                str(despesa)
-            ])
+            dotacao_cols = [
+                "codOrgao",
+                "codUnidade",
+                "codFuncao",
+                "codSubFuncao",
+                "codPrograma",
+                "codProjetoAtividade",
+                "codCategoria",
+                "codGrupo",
+                "codModalidade",
+                "codElemento",
+            ]
+
+            df_empenhos[dotacao_cols] = df_empenhos[dotacao_cols].apply(
+                pd.to_numeric, errors="coerce"
+            ).astype("Int64")
+
+            def col_str(col):
+                return df_empenhos[col].astype("string").fillna("")
+
+            despesa = (
+                col_str("codCategoria")
+                + col_str("codGrupo")
+                + col_str("codModalidade")
+                + col_str("codElemento")
+                + "00"
+            )
+
+            df_empenhos["codDespesa"] = (despesa)
+            
+            df_empenhos["dotacao_completa"] = (
+                col_str("codOrgao")
+                + "."
+                + col_str("codUnidade")
+                + "."
+                + col_str("codFuncao")
+                + "."
+                + col_str("codSubFuncao")
+                + "."
+                + col_str("codPrograma")
+                + "."
+                + col_str("codProjetoAtividade")
+                + "."
+                + despesa
+            )
+            
+            fonte_str = df_empenhos["codFonteRecurso"].astype("string").fillna("")
+
+            df_empenhos["Fonte"] = fonte_str.str.slice(0, 2)
+            df_empenhos["codExeFonte"] = fonte_str.str.slice(3, 4)
+            df_empenhos["codDestinacaoRecurso"] = fonte_str.str.slice(5, 8)
+            df_empenhos["codVinculacaoRecurso"] = fonte_str.str.slice(9, 13)
+
+            tz_brasilia = pytz.timezone('America/Sao_Paulo')
+            df_empenhos["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))
 
         df_parcial = pd.concat([df_parcial, df_empenhos], ignore_index=True)
         continue
@@ -136,12 +154,30 @@ for orgao_api in lista_orgaos:
 if not df_parcial.empty:
     df_parcial["codOrgao"] = pd.to_numeric(df_parcial["codOrgao"], errors="coerce").astype("Int64")
     df_parcial["codUnidade"] = pd.to_numeric(df_parcial["codUnidade"], errors="coerce").astype("Int64")
-    df_parcial["codProjetoAtividade"] = pd.to_numeric(
-        df_parcial["codProjetoAtividade"], errors="coerce"
-    ).astype("Int64")
+    df_parcial["codProjetoAtividade"] = pd.to_numeric(df_parcial["codProjetoAtividade"], errors="coerce").astype("Int64")
+    df_parcial["codDespesa"] = pd.to_numeric(df_parcial["codDespesa"], errors="coerce").astype("Int64")
+
+    codproc = (
+        df_parcial["codProcesso"]
+        .astype("string")
+        .fillna("")
+        .str.replace(r"\D", "", regex=True)
+    )
+    codproc = codproc.str.zfill(16)
+    has_codproc = codproc.str.len() == 16
+    df_parcial.loc[has_codproc, "codProcesso"] = (
+        codproc.str.slice(0, 4)
+        + "."
+        + codproc.str.slice(4, 8)
+        + "/"
+        + codproc.str.slice(8, 15)
+        + "-"
+        + codproc.str.slice(15)
+    )
 
     procv_orgao["cod_orgao"] = pd.to_numeric(procv_orgao["cod_orgao"], errors="coerce").astype("Int64")
     procv_acao["acao"] = pd.to_numeric(procv_acao["acao"], errors="coerce").astype("Int64")
+    procv_elemento["num_elemento"] = pd.to_numeric(procv_elemento["num_elemento"], errors="coerce").astype("Int64")
 
     df_parcial = df_parcial.merge(
         procv_orgao[["cod_orgao", "orgao"]],
@@ -149,6 +185,13 @@ if not df_parcial.empty:
         right_on="cod_orgao",
         how="left"
     )
+
+    df_parcial = df_parcial.merge(
+        procv_elemento[["num_elemento", "elemento_despesa"]],
+        left_on="codDespesa",
+        right_on="num_elemento",
+        how="left"
+    ).rename(columns={"elemento_despesa": "nome_elemento"})
 
     df_parcial = df_parcial.merge(
         procv_acao[["acao", "coordenadoria", "politicas_para", "acao_programatica"]],
@@ -202,6 +245,7 @@ ordem_colunas = [
     "txDescricaoModalidade",
     "codElemento",
     "txDescricaoElemento",
+    "codDespesa",
     "codFonteRecurso",
     "txDescricaoFonteRecurso",
     "codItemDespesa",
@@ -219,7 +263,8 @@ ordem_colunas = [
     "codReferencia",
     "codDestinacaoRecurso",
     "codVinculacaoRecurso",
-    "codExeFonte"
+    "codExeFonte",
+    "data_hora_extracao"
 ]
 
 if not df_parcial.empty:

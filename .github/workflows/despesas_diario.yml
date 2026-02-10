@@ -39,6 +39,12 @@ jobs:
         run: |
           python despesas.py
 
+      - name: Extrair empenhos
+        env:
+          API_TOKEN_SF: ${{ secrets.API_TOKEN_SF }}
+        run: |
+          python empenho_v2.py
+          
       - name: Registrar data/hora da atualização (rastro oficial)
         run: |
           date -u +"%Y-%m-%d %H:%M:%S UTC" > base_despesas/_ultima_atualizacao.txt
