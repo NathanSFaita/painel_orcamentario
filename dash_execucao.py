@@ -3,7 +3,7 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 import dash_table as dt
 from dash_table.Format import Format, Scheme, Symbol, Group
-from filtros import layout_filtros_padrao
+from filtros import layout_filtros_padrao, ano_padrao
 from utils import (carrega_base, lista_meses, gera_tabela_pivot,
                    cabecalho_padrao, tratar_selecao_todos, monta_cards_resumo,
                    DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, ler_info_versao, gera_card_atualizacao)
@@ -47,8 +47,17 @@ def registrar_callbacks_execucao(app):
     def atualiza_meses(ano, store):
         if not ano: return [], None
         meses = lista_meses("execucao", ano)
-        # Tenta manter o mês selecionado no store, senão pega o último
-        mes_selecionado = store.get("mes") if store and store.get("mes") in meses else (meses[-1] if meses else None)
+        
+        # Se o ano mudou manualmente (diferente do store), pega o último mês.
+        # Se for load inicial ou reset (ano == store), respeita o mês do store.
+        ano_store = store.get("ano") if store else None
+        mes_store = store.get("mes") if store else None
+        
+        if str(ano) != str(ano_store):
+            mes_selecionado = meses[-1] if meses else None
+        else:
+            mes_selecionado = mes_store if mes_store in meses else (meses[-1] if meses else None)
+            
         return [{"label": m, "value": m} for m in meses], mes_selecionado
 
     # Popula as opções dos filtros com base no ano/mês
@@ -96,7 +105,11 @@ def registrar_callbacks_execucao(app):
         trigger_id = ctx.triggered[0]["prop_id"]
 
         if "exe-btn-limpar" in trigger_id:
-            return {**store, "ano": ano, "mes": mes, "orgao": ["Todos"], "coordenacao": ["Todos"],
+            # Reseta para o ano e mês mais recentes
+            novo_ano = ano_padrao
+            meses = lista_meses("execucao", novo_ano)
+            novo_mes = meses[-1] if meses else None
+            return {**store, "ano": novo_ano, "mes": novo_mes, "orgao": ["Todos"], "coordenacao": ["Todos"],
                     "acao": ["Todos"], "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
                     "fonte": ["Todos"], "despesa": ["Todos"]}
         
@@ -115,12 +128,13 @@ def registrar_callbacks_execucao(app):
 
     # 2. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        [Output("exe-ano", "value")] + [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
         Input("store_filtros", "data")
     )
     def carrega_ui_exe(store):
-        if not store: return (["Todos"],)*8
-        return (store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
+        if not store: return (ano_padrao,) + (["Todos"],)*8
+        return (store.get("ano", ano_padrao),
+                store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
                 store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))

@@ -3,7 +3,7 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 import dash_table as dt
 from dash_table.Format import Format, Scheme, Symbol, Group
-from filtros import layout_filtros_padrao
+from filtros import layout_filtros_padrao, ano_padrao
 from utils import (
     carrega_base, gera_tabela_pivot, cabecalho_padrao,
     tratar_selecao_todos, monta_cards_resumo, DE_PARA_EMPENHOS,
@@ -86,7 +86,7 @@ def registrar_callbacks_empenhos(app):
         trigger_id = ctx.triggered[0]["prop_id"]
         
         if "emp-btn-limpar" in trigger_id:
-            return {**store, "ano": ano, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
+            return {**store, "ano": ano_padrao, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
                     "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], "fonte": ["Todos"], "despesa": ["Todos"]}
         
         store.update({
@@ -104,12 +104,13 @@ def registrar_callbacks_empenhos(app):
 
     # 3. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        [Output("emp-ano", "value")] + [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
         Input("store_filtros", "data")
     )
     def sync_ui_emp(store):
-        if not store: return (["Todos"],)*8
-        return (store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
+        if not store: return (ano_padrao,) + (["Todos"],)*8
+        return (store.get("ano", ano_padrao),
+                store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
                 store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))

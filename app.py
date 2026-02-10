@@ -8,7 +8,8 @@ from dash_empenhos import layout_empenhos, registrar_callbacks_empenhos
 from filtros import ano_padrao
 
 # Inicialização do App
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True, title="Painel Orçamentário")
+app._favicon = "smdhc_logo.png"
 server = app.server
 
 app.layout = html.Div([

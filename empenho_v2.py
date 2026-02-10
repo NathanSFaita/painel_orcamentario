@@ -49,6 +49,7 @@ requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
 ano = "2023"
+mes = "12"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
