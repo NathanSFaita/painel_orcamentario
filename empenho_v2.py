@@ -7,7 +7,7 @@ import os
 
 # Configurações iniciais
 TOKEN = os.getenv("API_TOKEN_SF")
-#TOKEN = ""
+# TOKEN = ""
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação
@@ -273,10 +273,20 @@ if not df_parcial.empty:
     cols_existentes = [col for col in ordem_colunas if col in df_parcial.columns]
     df_parcial = df_parcial[cols_existentes + [col for col in df_parcial.columns if col not in cols_existentes]]
 
-# Primeiro, expanda a coluna "anexos" para dicionários (pegando o primeiro item da lista)
+# Primeiro, expanda a coluna "anexos" para dicionários (concatenando todos os itens da lista)
 def extrai_anexo(anexos):
-    if isinstance(anexos, list) and len(anexos) > 0 and isinstance(anexos[0], dict):
-        return anexos[0]
+    if isinstance(anexos, list) and len(anexos) > 0:
+        dados_concatenados = {}
+        for item in anexos:
+            if isinstance(item, dict):
+                for k, v in item.items():
+                    if v is not None:
+                        val_str = str(v)
+                        if k in dados_concatenados:
+                            dados_concatenados[k] += " | " + val_str
+                        else:
+                            dados_concatenados[k] = val_str
+        return dados_concatenados
     return {}
 
 # Cria um DataFrame s? com os dados extra?dos
