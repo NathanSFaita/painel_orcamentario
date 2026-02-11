@@ -131,7 +131,7 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
         cards.append(criar_card("Disponível", dados_totais.get("valDisponivel", 0), 
                                 cor_fundo="#007bff", cor_texto="#FFFFFF", descricao=descrição_cards["Disponível"]))
         cards.append(criar_card("Congelado", dados_totais.get("valCongelado", 0), 
-                                cor_fundo="#6c757d", cor_texto="#FFFFFF", descricao=descrição_cards["Congelado"]))
+                                cor_fundo="#E6EAE1", cor_texto="#FFFFFF", descricao=descrição_cards["Congelado"]))
         
         cards.append(criar_card("Reservado", dados_totais.get("valReservadoLiquido", 0), 
                                 cor_fundo="#ffc107", cor_texto="#212529", descricao=descrição_cards["Reservado"]))
