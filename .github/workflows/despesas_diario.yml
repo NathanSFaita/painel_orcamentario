@@ -2,7 +2,7 @@ name: Atualizar base de despesas
 
 on:
   schedule:
-    - cron: "0 11 * * *"   # 08:00 (UTC-3)
+    - cron: "0 9 * * *"   # 06:00 (UTC-3)
   workflow_dispatch:
 
 permissions:
