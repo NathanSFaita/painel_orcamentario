@@ -1,8 +1,8 @@
 import dash
 from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
-import dash_table as dt
-from dash_table.Format import Format, Scheme, Symbol, Group
+from dash import dash_table as dt
+from dash.dash_table.Format import Format, Scheme, Symbol, Group
 from filtros import layout_filtros_padrao, ano_padrao
 from utils import (
     carrega_base, gera_tabela_pivot, cabecalho_padrao,

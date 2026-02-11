@@ -34,7 +34,12 @@ params_contratos = {
     "numPagina": ""
 }
 
-df_empenhos = pd.read_excel("empenhos_2025.xlsx")
+df_empenhos = pd.read_csv(
+    "base_empenhos/empenhos_2025.csv",
+    sep=';',
+    dtype={'anoContrato': str, 'codProcesso': str},
+    low_memory=False
+)
 
 # Agrupamento dos anoContrato e codProcesso
 anos_contrato = df_empenhos["anoContrato"].unique()
@@ -184,6 +189,6 @@ ordem_colunas = [
 
 #df_contratos = df_contratos.drop_duplicates()
 df_contratos = df_contratos[ordem_colunas + [col for col in df_contratos.columns if col not in ordem_colunas]]
-df_contratos.to_excel("contratos_2025.xlsx", index=False)
+df_contratos.to_csv("contratos_2025.csv", index=False, sep=';', encoding='utf-8-sig')
 
 print("prontinho")

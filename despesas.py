@@ -322,7 +322,7 @@ def main():
 
     # Agora salve o arquivo normalmente
     caminho_despesas = os.path.join(pasta_ano, f"despesas_{ano}{mes}.xlsx")
-    df_final.to_excel(caminho_despesas,index=False)
+    df_final.to_excel(caminho_despesas, index=False)
     
     print(f"Dados salvos em {caminho_despesas}")
 

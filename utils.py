@@ -262,6 +262,7 @@ def ler_info_versao():
 def lista_meses(base, ano):
     if not ano: return []
     try:
+        # A função lista_meses é usada apenas para a base de execução
         pasta = os.path.join(BASE_DIR, "base_despesas", str(ano)) if base == "execucao" else os.path.join(BASE_DIR, "base_empenhos")
         if not os.path.exists(pasta): return []
         arquivos = [f for f in os.listdir(pasta) if f.endswith(".xlsx") and not f.startswith("~$")]
@@ -272,12 +273,33 @@ def carrega_base(base, ano, mes):
     try:
         if base == "execucao":
             caminho = os.path.join(BASE_DIR, "base_despesas", str(ano), f"despesas_{ano}{mes}.xlsx")
+            # Colunas de filtro que podem ser lidas como números, mas devem ser tratadas como texto
+            dtype_map = {
+                'cd_orgao': str,
+                'projeto_atividade': str,
+                'despesa': str,
+                'vinculacao': str
+            }
+            if os.path.exists(caminho):
+                return pd.read_excel(caminho, dtype=dtype_map)
+            return pd.DataFrame()
         else:
-            caminho = os.path.join(BASE_DIR, "base_empenhos", f"empenhos_{ano}.xlsx")
-        
-        if os.path.exists(caminho):
-            return pd.read_excel(caminho)
-        return pd.DataFrame()
+            caminho = os.path.join(BASE_DIR, "base_empenhos", f"empenhos_{ano}.csv")
+            # Colunas de filtro que podem ser lidas como números, mas devem ser tratadas como texto
+            dtype_map = {
+                'codOrgao': str,
+                'codUnidade': str,
+                'codProjetoAtividade': str,
+                'codDespesa': str,
+                'codVinculacaoRecurso': str,
+                'codEmpenho': str,
+                'codProcesso': str,
+                'numContrato': str,
+                'anoContrato': str
+            }
+            if os.path.exists(caminho):
+                return pd.read_csv(caminho, sep=';', dtype=dtype_map, low_memory=False)
+            return pd.DataFrame()
     except Exception as e:
-        print(f"Erro ao carregar {base}: {e}")
+        print(f"Erro ao carregar base '{base}' de '{caminho}': {e}")
         return pd.DataFrame()

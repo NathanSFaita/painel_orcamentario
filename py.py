@@ -24,7 +24,12 @@ def fazer_requisicao(endpoint, params=None):
         print(f"Resposta inválida da API paraq {url} com params {params}")
         return None
 
-df_empenhos = pd.read_excel("empenhos_2025.xlsx")
+df_empenhos = pd.read_csv(
+    "base_empenhos/empenhos_2025.csv",
+    sep=';',
+    dtype={'codProcesso': str, 'dotacao_completa': str, 'anoContrato': str},
+    low_memory=False
+)
 
 pivot = pd.pivot_table(
     df_empenhos,
@@ -51,5 +56,5 @@ pivot["percentual"] = (
 
 pivot["percentual"] = pivot["percentual"].round(2)
 
-pivot.to_excel("pivot_empenhos_2025.xlsx", index=False)
+pivot.to_csv("pivot_empenhos_2025.csv", index=False, sep=';', encoding='utf-8-sig')
 print("Finalizado")

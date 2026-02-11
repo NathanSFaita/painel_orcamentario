@@ -6,8 +6,8 @@ import time
 import os
 
 # Configurações iniciais
-#TOKEN = ""
 TOKEN = os.getenv("API_TOKEN_SF")
+#TOKEN = ""
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação
@@ -49,8 +49,8 @@ requisicoes = 0
 requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
-ano = "2023"
-mes = "12"
+# ano = "2023"
+# mes = "12"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
@@ -286,6 +286,8 @@ if "anexos" in df_parcial.columns:
     df_parcial = pd.concat([df_parcial.drop(columns=["anexos"]), anexos_expandido], axis=1)
 
 
-caminho_arquivo = os.path.join("base_empenhos", f"empenhos_{ano}.xlsx")
-df_parcial.to_excel(caminho_arquivo, index=False)
-print("feitos os empenhos")
+pasta_destino = os.path.join(baseaux_path, "base_empenhos")
+os.makedirs(pasta_destino, exist_ok=True)
+caminho_arquivo = os.path.join(pasta_destino, f"empenhos_{ano}.csv")
+df_parcial.to_csv(caminho_arquivo, index=False, sep=";", encoding="utf-8-sig")
+print(f"Feitos os empenhos. Arquivo salvo em: {caminho_arquivo}")
