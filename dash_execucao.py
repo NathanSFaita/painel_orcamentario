@@ -1,4 +1,5 @@
 import dash
+import pandas as pd
 from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 from dash import dash_table as dt
@@ -6,12 +7,12 @@ from dash.dash_table.Format import Format, Scheme, Symbol, Group
 from filtros import layout_filtros_padrao, ano_padrao
 from utils import (carrega_base, lista_meses, gera_tabela_pivot,
                    cabecalho_padrao, tratar_selecao_todos, monta_cards_resumo,
-                   DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, ler_info_versao, gera_card_atualizacao)
+                   DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, gera_card_atualizacao)
 from gerar_pdf import criar_relatorio_execucao_pdf
 
 def layout_execucao():
     return dbc.Container([
-        cabecalho_padrao("📊 Painel Orçamentário", "📈 Execução Orçamentária"),
+        cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "📈 Execução Orçamentária"),
         html.Div(id="exe-cards-container", className="mb-4"),
         
         layout_filtros_padrao("exe"),
@@ -22,20 +23,21 @@ def layout_execucao():
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4")], md=2),
         ], className="mb-4", justify="center"),
 
-        html.Div(id="exe-info-atualizacao"),
         html.H5("Detalhamento", className="fw-bold"),
         dt.DataTable(
             id="exe-tabela",
             style_table={"overflowX": "auto"},
             style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Arial, sans-serif"},
             style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Arial, sans-serif"},
-            page_size=10, sort_action="native", #filter_action="native"
+            page_size=25, sort_action="native", #filter_action="native"
         ),
         dcc.Download(id="exe-download-xlsx"),
         dcc.Download(id="exe-download-pdf"),
         dbc.Button("📥 Download Excel", id="exe-btn-download", color="success", className="mt-3"),
-        dbc.Button("📄 Download PDF", id="exe-btn-download-pdf", color="danger", className="mt-3", style={"marginLeft": "10px"})
-    ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})
+        dbc.Button("📄 Download PDF", id="exe-btn-download-pdf", color="danger", className="mt-3", style={"marginLeft": "10px"}),
+        html.Hr(),
+        html.Div(id="exe-info-atualizacao")
+        ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})
 
 def registrar_callbacks_execucao(app):
     
@@ -151,10 +153,9 @@ def registrar_callbacks_execucao(app):
             return no_update, [], [], []
 
         df = carrega_base("execucao", store["ano"], store["mes"])
-        data_script = ler_info_versao()
 
         if df.empty:
-            card_atualizacao = gera_card_atualizacao("-", data_script)
+            card_atualizacao = gera_card_atualizacao("-")
             return card_atualizacao, html.Div("Sem dados para o período."), [], []
             
         # =========================================
@@ -193,7 +194,7 @@ def registrar_callbacks_execucao(app):
             if len(datas_unicas) > 0:
                 data_ext = str(datas_unicas[0])
         
-        card_atualizacao = gera_card_atualizacao(data_ext, data_script)
+        card_atualizacao = gera_card_atualizacao(data_ext)
 
         # Gera componentes
         cards = monta_cards_resumo(totais, DE_PARA_EXECUCAO)
@@ -269,3 +270,17 @@ def registrar_callbacks_execucao(app):
         
         pdf_bytes = criar_relatorio_execucao_pdf(store, totais, pivot)
         return dcc.send_bytes(pdf_bytes, "relatorio_execucao.pdf")
+
+    # 5. GERA E FAZ DOWNLOAD DO EXCEL
+    @app.callback(
+        Output("exe-download-xlsx", "data"),
+        Input("exe-btn-download", "n_clicks"),
+        State("exe-tabela", "data"),
+        prevent_initial_call=True
+    )
+    def download_excel_exe(n_clicks, dados_tabela):
+        if not dados_tabela:
+            return no_update
+        
+        df_excel = pd.DataFrame(dados_tabela)
+        return dcc.send_data_frame(df_excel.to_excel, "execucao_orcamentaria.xlsx", index=False)

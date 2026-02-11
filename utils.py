@@ -127,32 +127,33 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
         cards.append(criar_card("Orçado Inicial", dados_totais.get("valOrcadoInicial", 0), 
                                 cor_fundo="#6c757d", cor_texto="#FFFFFF", descricao=descrição_cards["Orçado Inicial"]))
         cards.append(criar_card("Orçado Atualizado", dados_totais.get("valOrcadoAtualizado", 0), 
-                                cor_fundo="#17a2b8", cor_texto="#FFFFFF", descricao=descrição_cards["Orçado Atualizado"]))
+                                cor_fundo="#28a745", cor_texto="#FFFFFF", descricao=descrição_cards["Orçado Atualizado"]))
         cards.append(criar_card("Disponível", dados_totais.get("valDisponivel", 0), 
                                 cor_fundo="#007bff", cor_texto="#FFFFFF", descricao=descrição_cards["Disponível"]))
         cards.append(criar_card("Congelado", dados_totais.get("valCongelado", 0), 
-                                cor_fundo="#E6EAE1", cor_texto="#FFFFFF", descricao=descrição_cards["Congelado"]))
+                                cor_fundo="#17a2b8", cor_texto="#FFFFFF", descricao=descrição_cards["Congelado"]))
         
         cards.append(criar_card("Reservado", dados_totais.get("valReservadoLiquido", 0), 
-                                cor_fundo="#ffc107", cor_texto="#212529", descricao=descrição_cards["Reservado"]))
+                                cor_fundo="#dabd18e2", cor_texto="#FFFFFF", descricao=descrição_cards["Reservado"]))
         cards.append(criar_card("Empenhado", dados_totais.get("valEmpenhadoLiquido", 0), 
                                 cor_fundo="#fd7e14", cor_texto="#FFFFFF", descricao=descrição_cards["Empenhado"]))
         cards.append(criar_card("Liquidado", dados_totais.get("valLiquidado", 0), 
-                                cor_fundo="#28a745", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
+                                cor_fundo="#b82e2e", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
         cards.append(criar_card("Pago", dados_totais.get("valPagoExercicio", 0), 
-                                cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))
+                                cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))
         
         # Saldo com cor condicional (Vermelho se negativo)
-        cards.append(criar_card("Saldo de Dotação", dados_totais.get("Saldo de Dotação", 0), cor_fundo="#343a40", cor_texto="#FFFFFF", descricao="Diferença entre o valor Orçado Atualizado e o Total Empenhado."))
+        cards.append(criar_card("Saldo de Dotação", dados_totais.get("Saldo de Dotação", 0), 
+                                cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Dotação"]))
 
     # Verifica contexto Empenhos
     elif "valEmpenhadoLiquido" in mapa_colunas:
         cards.append(criar_card("Empenhado", dados_totais.get("valEmpenhadoLiquido", 0), 
                                 cor_fundo="#fd7e14", cor_texto="#FFFFFF", descricao=descrição_cards["Empenhado"]))
         cards.append(criar_card("Liquidado", dados_totais.get("valLiquidado", 0), 
-                                cor_fundo="#28a745", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
+                                cor_fundo="#b82e2e", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
         cards.append(criar_card("Pago", dados_totais.get("valPagoExercicio", 0), 
-                                cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))
+                                cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))
 
     else:
         # Fallback para outros casos
@@ -161,8 +162,11 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
             
     return dbc.Row(cards, justify="center")
 
-def gera_card_atualizacao(data_extracao_df, data_execucao_script):
+def gera_card_atualizacao(data_extracao_df):
+    # Função ajustada para receber apenas a data do dataframe
     """Gera um card informativo com as datas de atualização."""
+    data_exibicao = data_extracao_df if data_extracao_df and data_extracao_df != "-" else "Dados não encontrados"
+
     return dbc.Card(
         dbc.CardBody([
             dbc.Row([
@@ -171,7 +175,7 @@ def gera_card_atualizacao(data_extracao_df, data_execucao_script):
                         html.H6("Data de Atualização", 
                                 className="card-subtitle text-muted", 
                                 style={"fontSize": "0.9rem"}),
-                        html.H5(data_execucao_script, 
+                        html.H5(data_exibicao, 
                                 className="card-title", 
                                 style={"fontSize": "1.1rem"}),
                         html.H6("Fonte: API-SOF", className="card-subtitle text-muted mt-2")

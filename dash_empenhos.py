@@ -1,4 +1,5 @@
 import dash
+import pandas as pd
 from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 from dash import dash_table as dt
@@ -6,14 +7,14 @@ from dash.dash_table.Format import Format, Scheme, Symbol, Group
 from filtros import layout_filtros_padrao, ano_padrao
 from utils import (
     carrega_base, gera_tabela_pivot, cabecalho_padrao,
-    tratar_selecao_todos, monta_cards_resumo, DE_PARA_EMPENHOS,
-    DE_PARA_INDICES_EMPENHOS, ler_info_versao, gera_card_atualizacao,
+    tratar_selecao_todos, monta_cards_resumo, DE_PARA_EMPENHOS, DE_PARA_INDICES_EMPENHOS,
+    gera_card_atualizacao,
 )
 from gerar_pdf import criar_relatorio_empenho_pdf
 
 def layout_empenhos():
     return dbc.Container([
-        cabecalho_padrao("📊 Painel Orçamentário", "💰 Consulta de Empenhos"),
+        cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "💰 Consulta de Empenhos"),
         
         # CARDS + INFO ATUALIZAÇÃO
         html.Div(id="emp-cards-container", className="mb-4"),
@@ -22,30 +23,36 @@ def layout_empenhos():
         
         dbc.Row([
             dbc.Col([html.Label("Nº Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-empenho", multi=True)], md=2),
+            dbc.Col([html.Label("Objeto do Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-objeto", multi=True)], md=7),
+        ], className="mb-4", justify="center"),
+
+        dbc.Row([
             dbc.Col([html.Label("Processo", className="fw-bold"), dcc.Dropdown(id="emp-filtro-processo", multi=True)], md=2),
-            dbc.Col([html.Label("Objeto do Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-objeto", multi=True)], md=5),
+            dbc.Col([html.Label("Credor", className="fw-bold"), dcc.Dropdown(id="emp-filtro-credor", multi=True)], md=7),
         ], className="mb-4", justify="center"),
 
         dbc.Row([
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="emp-btn-limpar", color="warning", className="w-100 mt-4")], md=2),
             dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", color="secondary", className="w-100 mt-4")], md=2),
         ], className="mb-4", justify="center"),           
-        html.Div(id="emp-info-atualizacao"),
-        
+                
         # TABELA
         html.H5("Lista de Empenhos", className="fw-bold"),
         dt.DataTable(
             id="emp-tabela",
             style_table={"overflowX": "auto"},
-            style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Arial, sans-serif"},
-            style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Arial, sans-serif"},
-            page_size=10, sort_action="native", #filter_action="native"
+            style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Calibri, sans-serif"},
+            style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Calibri, sans-serif"},
+            page_size=25, sort_action="native", #filter_action="native"
         ),
         dcc.Download(id="emp-download-xlsx"),
         dcc.Download(id="emp-download-pdf"),
         dbc.Button("📥 Download Excel", id="emp-btn-download", color="success", className="mt-3"),
-        dbc.Button("📄 Download PDF", id="emp-btn-download-pdf", color="danger", className="mt-3", style={"marginLeft": "10px"})
+        dbc.Button("📄 Download PDF", id="emp-btn-download-pdf", color="danger", className="mt-3", style={"marginLeft": "10px"}),
+        html.Hr(),
+        html.Div(id="emp-info-atualizacao")
     ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})
+       
 
 def registrar_callbacks_empenhos(app):
     
@@ -53,7 +60,7 @@ def registrar_callbacks_empenhos(app):
     @app.callback(
         [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
                                                      "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
-        [Output("emp-filtro-objeto", "options")],
+        [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options")],
         Input("emp-ano", "value")
     )
     def popula_opts(ano):
@@ -68,7 +75,7 @@ def registrar_callbacks_empenhos(app):
         return (opts_todos("orgao"), opts_todos("coordenacao"), opts_todos("acao_programatica"),
                 opts_todos("codProjetoAtividade"), opts_todos("nome_elemento"), opts_todos("codVinculacaoRecurso"),
                 opts_todos("txDescricaoFonteRecurso"), opts_todos("codDespesa"), opts("codEmpenho"), opts("codProcesso"),
-                opts("anexo_descricaoAnexo"))
+                opts("txtRazaoSocial"), opts("anexo_descricaoAnexo"))
 
     # 2. UI -> STORE (Salva alterações e aplica lógica do "Todos")
     @app.callback(
@@ -121,18 +128,17 @@ def registrar_callbacks_empenhos(app):
         Output("emp-cards-container", "children"),
         Output("emp-tabela", "data"), Output("emp-tabela", "columns"),
         Input("store_filtros", "data"),
-        Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value")
-        , Input("emp-filtro-objeto", "value")
+        Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
+        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value")
     )
-    def atualiza_dash_emp(store, f_empenho, f_processo, f_objeto):
+    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto):
         if not store or not store.get("ano"):
             return (no_update,) * 4
         
         df = carrega_base("empenhos", store["ano"], None)
-        data_script = ler_info_versao()
 
         if df.empty:
-            card_atualizacao = gera_card_atualizacao("-", data_script)
+            card_atualizacao = gera_card_atualizacao("-")
             return card_atualizacao, html.Div("Sem dados."), [], []
 
         # Aplica Filtros Globais
@@ -151,6 +157,7 @@ def registrar_callbacks_empenhos(app):
         # Filtros Locais (Empenho/Processo)
         if f_empenho: df = df[df["codEmpenho"].isin(f_empenho)]
         if f_processo: df = df[df["codProcesso"].isin(f_processo)]
+        if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
         if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
 
         # 1. Cards
@@ -161,7 +168,7 @@ def registrar_callbacks_empenhos(app):
             datas = df[col_data].dropna().unique()
             if len(datas) > 0: data_ext = str(datas[0])
         
-        card_atualizacao = gera_card_atualizacao(data_ext, data_script)
+        card_atualizacao = gera_card_atualizacao(data_ext)
 
         totais = {c: df[c].sum() for c in DE_PARA_EMPENHOS.keys() if c in df.columns}
         cards = monta_cards_resumo(totais, DE_PARA_EMPENHOS)
@@ -201,10 +208,11 @@ def registrar_callbacks_empenhos(app):
         State("store_filtros", "data"),
         State("emp-filtro-empenho", "value"),
         State("emp-filtro-processo", "value"),
+        State("emp-filtro-credor", "value"),
         State("emp-filtro-objeto", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_report(n_clicks, store, f_empenho, f_processo, f_objeto):
+    def download_pdf_report(n_clicks, store, f_empenho, f_processo, f_credor, f_objeto):
         if not store or not store.get("ano"):
             return no_update
         
@@ -224,6 +232,7 @@ def registrar_callbacks_empenhos(app):
         
         if f_empenho: df = df[df["codEmpenho"].isin(f_empenho)]
         if f_processo: df = df[df["codProcesso"].isin(f_processo)]
+        if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
         if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
         
         # --- Obter dados para o relatório ---
@@ -234,3 +243,27 @@ def registrar_callbacks_empenhos(app):
         pdf_bytes = criar_relatorio_empenho_pdf(store, totais, pivot)
         
         return dcc.send_bytes(pdf_bytes, "relatorio_empenhos.pdf")
+
+    # 6. GERA E FAZ DOWNLOAD DO EXCEL
+    @app.callback(
+        Output("emp-download-xlsx", "data"),
+        Input("emp-btn-download", "n_clicks"),
+        State("emp-tabela", "data"),
+        prevent_initial_call=True
+    )
+    def download_excel_emp(n_clicks, dados_tabela):
+        if not dados_tabela:
+            return no_update
+        
+        df_excel = pd.DataFrame(dados_tabela)
+        return dcc.send_data_frame(df_excel.to_excel, "empenhos.xlsx", index=False)
+
+    # 7. LIMPA FILTROS LOCAIS
+    @app.callback(
+        Output("emp-filtro-empenho", "value"), Output("emp-filtro-processo", "value"),
+        Output("emp-filtro-credor", "value"), Output("emp-filtro-objeto", "value"),
+        Input("emp-btn-limpar", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def limpar_filtros_locais(n_clicks):
+        return [], [], [], []

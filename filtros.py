@@ -33,32 +33,31 @@ def layout_filtros_padrao(prefixo):
             dbc.Col([
                 html.Label("Órgão", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-orgao", multi=True)
-            ], md=2),
+            ], md=1),
             dbc.Col([
                 html.Label("Coordenação", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-coordenacao", multi=True)
             ], md=2),
             dbc.Col([
-                html.Label("Projeto/Atividade", className="fw-bold"),
+                html.Label("Ação", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-projeto", multi=True)
             ], md=2),
             dbc.Col([
-                html.Label("Ação Programática", className="fw-bold"),
+                html.Label("Atividade", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-acao", multi=True)
-            ], md=2),
+            ], md=3),
         ], className="mb-2", justify="center"),
         
         dbc.Row([
             # Linha 2
-            
-            dbc.Col([
-                html.Label("Elemento de Despesa", className="fw-bold"),
-                dcc.Dropdown(id=f"{prefixo}-elemento", multi=True)
-            ], md=3),
             dbc.Col([
                 html.Label("Despesa (Código)", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-despesa", multi=True)
-            ], md=6),
+            ], md=2),
+            dbc.Col([
+                html.Label("Elemento de Despesa", className="fw-bold"),
+                dcc.Dropdown(id=f"{prefixo}-elemento", multi=True)
+            ], md=7),            
         ], className="mb-2", justify="center"),
         
         dbc.Row([
@@ -66,11 +65,11 @@ def layout_filtros_padrao(prefixo):
             dbc.Col([
                 html.Label("Vinculação", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-vinculacao", multi=True)
-            ], md=3),
+            ], md=2),
             dbc.Col([
                 html.Label("Fonte", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-fonte", multi=True)
-            ], md=6)
+            ], md=7)
             ,
         ], className="mb-4", justify="center")
     ])
