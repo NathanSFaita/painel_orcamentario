@@ -57,4 +57,5 @@ jobs:
         run: |
           git add base_despesas base_empenhos version.txt
           git commit -m "Atualização automática diária da base" || echo "Nada para commitar"
+          git pull --rebase origin main
           git push origin main
