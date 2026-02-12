@@ -33,7 +33,7 @@ def layout_filtros_padrao(prefixo):
             dbc.Col([
                 html.Label("Órgão", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-orgao", multi=True)
-            ], md=1),
+            ], md=2),
             dbc.Col([
                 html.Label("Coordenação", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-coordenacao", multi=True)
@@ -41,7 +41,7 @@ def layout_filtros_padrao(prefixo):
             dbc.Col([
                 html.Label("Ação", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-projeto", multi=True)
-            ], md=2),
+            ], md=1),
             dbc.Col([
                 html.Label("Atividade", className="fw-bold"),
                 dcc.Dropdown(id=f"{prefixo}-acao", multi=True)

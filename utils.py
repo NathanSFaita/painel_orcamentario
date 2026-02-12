@@ -93,7 +93,7 @@ descrição_cards = {
     "Congelado": "Parcela do orçamento bloqueada pela Secretaria da Fazenda (SF).",
     "Reservado": "Valor reservado para futura contratação (Reserva de Dotação).",
     "Empenhado": "Valor comprometido com credores para entrega de bens ou serviços.",
-    "Liquidado": "Despesa verificada: o bem foi entregue ou o serviço foi prestado, e o credor poderá receber o pagamento.",
+    "Liquidado": "O bem foi entregue ou o serviço foi prestado, e o credor poderá receber o pagamento.",
     "Pago": "Pagamento foi efetivamente realizado ao credor.",
     "Saldo de Dotação": "Diferença entre o valor Disponível e o Reservado.",
     "Saldo de Reserva": "Valor que ainda precisa ser reservado (Reservado - Empenhado)."
