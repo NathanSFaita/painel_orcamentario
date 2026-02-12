@@ -7,7 +7,7 @@ import os
 
 # Configurações iniciais
 TOKEN = os.getenv("API_TOKEN_SF")
-# TOKEN = ""
+TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação
@@ -49,8 +49,8 @@ requisicoes = 0
 requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
-# ano = "2023"
-# mes = "12"
+ano = "2025"
+mes = "12"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
@@ -112,6 +112,8 @@ for orgao_api in lista_orgaos:
             ).astype("Int64")
 
             def col_str(col):
+                if orgao_api == "08":
+                    return "0" + df_empenhos[col].astype("string").fillna("")
                 return df_empenhos[col].astype("string").fillna("")
 
             despesa = (
@@ -137,7 +139,9 @@ for orgao_api in lista_orgaos:
                 + "."
                 + col_str("codProjetoAtividade")
                 + "."
-                + despesa
+                + despesa 
+                + "."
+                + col_str("codFonteRecurso")
             )
             
             fonte_str = df_empenhos["codFonteRecurso"].astype("string").fillna("")

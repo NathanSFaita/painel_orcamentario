@@ -182,10 +182,13 @@ def registrar_callbacks_execucao(app):
         cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c != "Saldo de Dotação"]
         totais = {c: df[c].sum() for c in cols_numericas}
         
-        # Calcula Saldo de Dotação: Orçado Atualizado - Empenhado Líquido
-        orcado = totais.get("valOrcadoAtualizado", 0)
+        # Calcula Saldo de Dotação e Saldo de Reserva: 
+        disponivel = totais.get("valDisponivel", 0)
+        reservado = totais.get("valReservadoLiquido", 0)
         empenhado = totais.get("valEmpenhadoLiquido", 0)
-        totais["Saldo de Dotação"] = orcado - empenhado
+        totais["Saldo de Dotação"] = disponivel - reservado
+        totais["Saldo de Reserva"] = reservado - empenhado
+
 
         # Data de extração
         data_ext = "-"

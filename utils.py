@@ -31,7 +31,8 @@ DE_PARA_EXECUCAO = {
     "valEmpenhadoLiquido": "Empenhado",
     "valLiquidado": "Liquidado",
     "valPagoExercicio": "Pago",
-    "Saldo de Dotação": "Saldo de Dotação"  # Campo calculado manualmente no dash
+    "Saldo de Dotação": "Saldo de Dotação",  # Campo calculado manualmente no dash
+    "Saldo de Reserva": "Saldo de Reserva"  # Campo calculado manualmente no dash
 }
 
 DE_PARA_INDICES_EMPENHOS = {
@@ -39,6 +40,7 @@ DE_PARA_INDICES_EMPENHOS = {
     "codEmpenho": "Nº Empenho",
     "codProcesso": "Processo SEI",
     "coordenacao": "Coordenação",
+    "acao_programatica": "Atividade",
     "codVinculacaoRecurso": "Vinculação",
     "codDespesa": "Despesa",
     "nome_elemento": "Elemento de Despesa",
@@ -87,13 +89,14 @@ def formata_moeda(valor):
 descrição_cards = {
     "Orçado Inicial": "Valor aprovado na Lei Orçamentária Anual (LOA).",
     "Orçado Atualizado": "Orçamento inicial ajustado por créditos adicionais, suplementações e reduções.",
-    "Disponível": "Saldo livre para empenhos (Orçado Atualizado - Reservado/Empenhado - Congelado).",
+    "Disponível": "Saldo livre para empenhos (Orçado Atualizado - Reservado - Congelado).",
     "Congelado": "Parcela do orçamento bloqueada pela Secretaria da Fazenda (SF).",
     "Reservado": "Valor reservado para futura contratação (Reserva de Dotação).",
     "Empenhado": "Valor comprometido com credores para entrega de bens ou serviços.",
     "Liquidado": "Despesa verificada: o bem foi entregue ou o serviço foi prestado, e o credor poderá receber o pagamento.",
     "Pago": "Pagamento foi efetivamente realizado ao credor.",
-    "Saldo de Dotação": "Diferença entre o valor Orçado Atualizado e o Total Empenhado."
+    "Saldo de Dotação": "Diferença entre o valor Disponível e o Reservado.",
+    "Saldo de Reserva": "Valor que ainda precisa ser reservado (Reservado - Empenhado)."
 }
 
 def monta_cards_resumo(dados_totais, mapa_colunas):
@@ -140,12 +143,13 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
         cards.append(criar_card("Liquidado", dados_totais.get("valLiquidado", 0), 
                                 cor_fundo="#b82e2e", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
         cards.append(criar_card("Pago", dados_totais.get("valPagoExercicio", 0), 
-                                cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))
+                                cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))        
         
-        # Saldo com cor condicional (Vermelho se negativo)
+        cards.append(criar_card("Saldo de Reserva", dados_totais.get("Saldo de Reserva", 0), 
+                                cor_fundo="#af865a", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Reserva"]))
         cards.append(criar_card("Saldo de Dotação", dados_totais.get("Saldo de Dotação", 0), 
                                 cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Dotação"]))
-
+        
     # Verifica contexto Empenhos
     elif "valEmpenhadoLiquido" in mapa_colunas:
         cards.append(criar_card("Empenhado", dados_totais.get("valEmpenhadoLiquido", 0), 

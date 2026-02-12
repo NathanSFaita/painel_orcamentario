@@ -12,6 +12,9 @@ from utils import (
 )
 from gerar_pdf import criar_relatorio_empenho_pdf
 
+# Mapa completo de colunas disponíveis para seleção
+MAPA_COLUNAS_EMPENHOS = {**DE_PARA_INDICES_EMPENHOS, **DE_PARA_EMPENHOS}
+
 def layout_empenhos():
     return dbc.Container([
         cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "💰 Consulta de Empenhos"),
@@ -23,7 +26,8 @@ def layout_empenhos():
         
         dbc.Row([
             dbc.Col([html.Label("Nº Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-empenho", multi=True)], md=2),
-            dbc.Col([html.Label("Objeto do Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-objeto", multi=True)], md=7),
+            dbc.Col([html.Label("Objeto do Empenho", className="fw-bold"), 
+                     dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True)], md=7),
         ], className="mb-4", justify="center"),
 
         dbc.Row([
@@ -34,8 +38,27 @@ def layout_empenhos():
         dbc.Row([
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="emp-btn-limpar", color="warning", className="w-100 mt-4")], md=2),
             dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", color="secondary", className="w-100 mt-4")], md=2),
+            dbc.Col([dbc.Button("🛠️ Colunas", id="emp-btn-colunas", color="info", className="w-100 mt-4")], md=2),
         ], className="mb-4", justify="center"),           
                 
+        # MODAL DE SELEÇÃO DE COLUNAS
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Selecionar Colunas para Exibição")),
+            dbc.ModalBody([
+                html.Div([
+                    dbc.Button("✅ Selecionar Tudo", id="emp-btn-sel-todos", size="sm", color="primary", outline=True, className="me-2"),
+                    dbc.Button("❌ Desmarcar Tudo", id="emp-btn-des-todos", size="sm", color="secondary", outline=True),
+                ], className="mb-3 d-flex justify-content-center"),
+                dbc.Checklist(
+                    id="emp-checklist-colunas",
+                    options=[{"label": v, "value": k} for k, v in MAPA_COLUNAS_EMPENHOS.items()],
+                    value=list(MAPA_COLUNAS_EMPENHOS.keys()), # Todas selecionadas por padrão
+                    switch=True,
+                )
+            ]),
+            dbc.ModalFooter(dbc.Button("Fechar", id="emp-btn-fechar-modal", className="ms-auto", n_clicks=0))
+        ], id="emp-modal-colunas", is_open=False),
+
         # TABELA
         html.H5("Lista de Empenhos", className="fw-bold"),
         dt.DataTable(
@@ -122,16 +145,47 @@ def registrar_callbacks_empenhos(app):
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
                 store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))
 
-    # 4. GERA DADOS (CARDS + TABELA)
+    # 4. CONTROLE DO MODAL DE COLUNAS
+    @app.callback(
+        Output("emp-modal-colunas", "is_open"),
+        Input("emp-btn-colunas", "n_clicks"),
+        Input("emp-btn-fechar-modal", "n_clicks"),
+        State("emp-modal-colunas", "is_open"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_colunas(n1, n2, is_open):
+        if n1 or n2:
+            return not is_open
+        return is_open
+
+    # 5. CONTROLE DOS BOTÕES SELECIONAR/DESMARCAR TUDO
+    @app.callback(
+        Output("emp-checklist-colunas", "value"),
+        Input("emp-btn-sel-todos", "n_clicks"),
+        Input("emp-btn-des-todos", "n_clicks"),
+        State("emp-checklist-colunas", "options"),
+        prevent_initial_call=True
+    )
+    def controlar_botoes_selecao(n_sel, n_des, options):
+        ctx = callback_context
+        if not ctx.triggered: return no_update
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "emp-btn-sel-todos":
+            return [opt["value"] for opt in options]
+        return [] # Retorna lista vazia para desmarcar tudo
+
+    # 6. GERA DADOS (CARDS + TABELA)
     @app.callback(
         Output("emp-info-atualizacao", "children"),
         Output("emp-cards-container", "children"),
         Output("emp-tabela", "data"), Output("emp-tabela", "columns"),
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
-        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value")
+        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
+        Input("emp-checklist-colunas", "value")
     )
-    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto):
+    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
         if not store or not store.get("ano"):
             return (no_update,) * 4
         
@@ -175,6 +229,12 @@ def registrar_callbacks_empenhos(app):
 
         # 2. Tabela
         pivot = gera_tabela_pivot(df, "empenhos")
+        
+        # Filtra as colunas do DataFrame com base na seleção do usuário
+        if cols_selecionadas:
+            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            pivot = pivot[cols_to_keep]
+
         cols_table = []
         for c in pivot.columns:
             if c in DE_PARA_EMPENHOS:
@@ -201,7 +261,7 @@ def registrar_callbacks_empenhos(app):
 
         return card_atualizacao, cards, pivot.to_dict("records"), cols_table
 
-    # 5. GERA E FAZ DOWNLOAD DO PDF
+    # 7. GERA E FAZ DOWNLOAD DO PDF
     @app.callback(
         Output("emp-download-pdf", "data"),
         Input("emp-btn-download-pdf", "n_clicks"),
@@ -210,9 +270,10 @@ def registrar_callbacks_empenhos(app):
         State("emp-filtro-processo", "value"),
         State("emp-filtro-credor", "value"),
         State("emp-filtro-objeto", "value"),
+        State("emp-checklist-colunas", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_report(n_clicks, store, f_empenho, f_processo, f_credor, f_objeto):
+    def download_pdf_report(n_clicks, store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
         if not store or not store.get("ano"):
             return no_update
         
@@ -239,12 +300,17 @@ def registrar_callbacks_empenhos(app):
         totais = {c: df[c].sum() for c in DE_PARA_EMPENHOS.keys() if c in df.columns}
         pivot = gera_tabela_pivot(df, "empenhos")
 
+        # Filtra colunas para o PDF também
+        if cols_selecionadas:
+            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            pivot = pivot[cols_to_keep]
+
         # --- Gerar o PDF ---
         pdf_bytes = criar_relatorio_empenho_pdf(store, totais, pivot)
         
         return dcc.send_bytes(pdf_bytes, "relatorio_empenhos.pdf")
 
-    # 6. GERA E FAZ DOWNLOAD DO EXCEL
+    # 8. GERA E FAZ DOWNLOAD DO EXCEL
     @app.callback(
         Output("emp-download-xlsx", "data"),
         Input("emp-btn-download", "n_clicks"),
@@ -258,7 +324,7 @@ def registrar_callbacks_empenhos(app):
         df_excel = pd.DataFrame(dados_tabela)
         return dcc.send_data_frame(df_excel.to_excel, "empenhos.xlsx", index=False)
 
-    # 7. LIMPA FILTROS LOCAIS
+    # 9. LIMPA FILTROS LOCAIS
     @app.callback(
         Output("emp-filtro-empenho", "value"), Output("emp-filtro-processo", "value"),
         Output("emp-filtro-credor", "value"), Output("emp-filtro-objeto", "value"),
