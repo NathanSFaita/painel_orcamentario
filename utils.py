@@ -131,7 +131,7 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
             dbc.Card([
                 dbc.CardBody([
                     html.H6(elementos_titulo, className="card-subtitle mb-2", style={"color": cor_texto, "opacity": "0.9"}),
-                    html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold", "fontSize": "25px"})
+                    html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold", "fontSize": "22px"})
                 ])
             ], className="h-100 shadow-sm", style={"backgroundColor": cor_fundo, "border": "none"})
         ], style={"width": "20%", "flex": "0 1 15%"}, className="mb-3")

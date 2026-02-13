@@ -29,19 +29,19 @@ def layout_empenhos():
         dbc.Row([
             dbc.Col([
                 criar_label_com_tooltip("Nº Empenho", "emp"),
-                dcc.Dropdown(id="emp-filtro-empenho", multi=True)], md=2),
+                dcc.Dropdown(id="emp-filtro-empenho", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=2),
             dbc.Col([
                 criar_label_com_tooltip("Objeto do Empenho", "emp"),
-                dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True)], md=7),
-        ], className="mb-4", justify="center"),
+                dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True, style={"maxHeight": "45px", "overflowY": "visible"})], md=7),
+        ], className="mb-2", justify="center"),
 
         dbc.Row([
             dbc.Col([
                 criar_label_com_tooltip("Processo SEI", "emp"),
-                dcc.Dropdown(id="emp-filtro-processo", multi=True)], md=2),
+                dcc.Dropdown(id="emp-filtro-processo", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=2),
             dbc.Col([
                 criar_label_com_tooltip("Credor", "emp"),
-                dcc.Dropdown(id="emp-filtro-credor", multi=True)], md=7),
+                dcc.Dropdown(id="emp-filtro-credor", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=7),
         ], className="mb-4", justify="center"),
 
         dbc.Row([
