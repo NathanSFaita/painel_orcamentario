@@ -131,10 +131,14 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
             dbc.Card([
                 dbc.CardBody([
                     html.H6(elementos_titulo, className="card-subtitle mb-2", style={"color": cor_texto, "opacity": "0.9"}),
-                    html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold"})
+                    html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold", "fontSize": "25px"})
                 ])
             ], className="h-100 shadow-sm", style={"backgroundColor": cor_fundo, "border": "none"})
-        ], md=3, className="mb-3")
+        ], style={"width": "15%", "flex": "0 0 15%"}, className="mb-3")
+
+    # Função auxiliar para criar quebra de linha
+    def criar_quebra():
+        return html.Div(className="w-100")
 
     # Verifica contexto Execução (baseado nas chaves do mapa)
     if "valOrcadoInicial" in mapa_colunas:
@@ -143,13 +147,17 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
                                 cor_fundo="#6c757d", cor_texto="#FFFFFF", descricao=descrição_cards["Orçado Inicial"]))
         cards.append(criar_card("Orçado Atualizado", dados_totais.get("valOrcadoAtualizado", 0), 
                                 cor_fundo="#28a745", cor_texto="#FFFFFF", descricao=descrição_cards["Orçado Atualizado"]))
-        cards.append(criar_card("Disponível", dados_totais.get("valDisponivel", 0), 
-                                cor_fundo="#007bff", cor_texto="#FFFFFF", descricao=descrição_cards["Disponível"]))
         cards.append(criar_card("Congelado", dados_totais.get("valCongelado", 0), 
                                 cor_fundo="#17a2b8", cor_texto="#FFFFFF", descricao=descrição_cards["Congelado"]))
+        cards.append(criar_card("Disponível", dados_totais.get("valDisponivel", 0), 
+                                cor_fundo="#007bff", cor_texto="#FFFFFF", descricao=descrição_cards["Disponível"]))
         
+        cards.append(criar_quebra())
+
         cards.append(criar_card("Reservado", dados_totais.get("valReservadoLiquido", 0), 
                                 cor_fundo="#dabd18e2", cor_texto="#FFFFFF", descricao=descrição_cards["Reservado"]))
+        cards.append(criar_card("Saldo de Reserva", dados_totais.get("Saldo de Reserva", 0), 
+                                cor_fundo="#af865a", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Reserva"]))
         cards.append(criar_card("Empenhado", dados_totais.get("valEmpenhadoLiquido", 0), 
                                 cor_fundo="#fd7e14", cor_texto="#FFFFFF", descricao=descrição_cards["Empenhado"]))
         cards.append(criar_card("Liquidado", dados_totais.get("valLiquidado", 0), 
@@ -157,8 +165,6 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
         cards.append(criar_card("Pago", dados_totais.get("valPagoExercicio", 0), 
                                 cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))        
         
-        cards.append(criar_card("Saldo de Reserva", dados_totais.get("Saldo de Reserva", 0), 
-                                cor_fundo="#af865a", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Reserva"]))
         cards.append(criar_card("Saldo de Dotação", dados_totais.get("Saldo de Dotação", 0), 
                                 cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Dotação"]))
         
