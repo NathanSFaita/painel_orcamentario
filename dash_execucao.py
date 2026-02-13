@@ -13,6 +13,7 @@ from gerar_pdf import criar_relatorio_execucao_pdf
 def layout_execucao():
     return dbc.Container([
         cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "📈 Execução Orçamentária"),
+        
         html.Div(id="exe-cards-container", className="mb-4"),
         # Store para guardar as opções dos filtros e evitar recargas desnecessárias
         dcc.Store(id="store_opcoes_exe", storage_type="memory"),
@@ -21,8 +22,9 @@ def layout_execucao():
         
         dbc.Row([
             dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
-            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", color="warning", className="w-100 mt-4")], md=2),
-            dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4")], md=2),
+            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", color="warning", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
+            dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
+            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", color="info", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=1),
         ], className="mb-4", justify="center"),
 
         html.H5("Detalhamento", className="fw-bold"),

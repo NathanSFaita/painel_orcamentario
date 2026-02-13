@@ -252,7 +252,7 @@ def cabecalho_padrao(titulo, subtitulo):
             html.Img(src="/assets/smdhc_logo.png", height="100px"),
             html.H2(titulo, className="text-center mb-2 mt-4", style={"color": "#1f77b4", "fontWeight": "bold"}),
             html.H4(subtitulo, className="text-center mb-4", style={"color": "#6c757d"}),
-            html.Hr()
+            html.Hr(className="my-4", style={"borderColor": "#111111"})
         ], className="text-center")
     ])
 

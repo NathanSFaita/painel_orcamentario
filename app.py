@@ -5,6 +5,7 @@ import os
 
 from dash_execucao import layout_execucao, registrar_callbacks_execucao
 from dash_empenhos import layout_empenhos, registrar_callbacks_empenhos
+from dash_sobre import layout_sobre, registrar_callbacks_sobre
 from filtros import ano_padrao
 
 # Inicialização do App
@@ -30,11 +31,14 @@ app.layout = html.Div([
 def render_page(pathname):
     if pathname == "/empenhos":
         return layout_empenhos()
+    elif pathname == "/sobre":
+        return layout_sobre()
     return layout_execucao()
 
 # Registra os callbacks de todas as páginas
 registrar_callbacks_execucao(app)
 registrar_callbacks_empenhos(app)
+registrar_callbacks_sobre(app)
 
 if __name__ == "__main__":
     if os.environ.get("PORT"):   # Heroku
