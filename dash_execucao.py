@@ -14,6 +14,8 @@ def layout_execucao():
     return dbc.Container([
         cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "📈 Execução Orçamentária"),
         html.Div(id="exe-cards-container", className="mb-4"),
+        # Store para guardar as opções dos filtros e evitar recargas desnecessárias
+        dcc.Store(id="store_opcoes_exe", storage_type="memory"),
         
         layout_filtros_padrao("exe"),
         
@@ -62,35 +64,67 @@ def registrar_callbacks_execucao(app):
             
         return [{"label": m, "value": m} for m in meses], mes_selecionado
 
-    # Popula as opções dos filtros com base no ano/mês
+    # 1. Gera as opções base e salva no Store (Separado da renderização visual)
     @app.callback(
-        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        Output("store_opcoes_exe", "data"),
         Input("exe-mes", "value"),
         State("exe-ano", "value")
     )
-    def popula_opcoes_filtros_exe(mes, ano):
+    def carrega_opcoes_base_exe(mes, ano):
         if not ano or not mes:
-            return [[{"label": "Todos", "value": "Todos"}] for _ in range(8)]
+            return {}
 
         df = carrega_base("execucao", ano, mes)
         if df.empty:
-            return [[{"label": "Todos", "value": "Todos"}] for _ in range(8)]
+            return {}
 
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica",
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
             "fonte": "ds_fonte", "despesa": "despesa"
         }
-
+        
+        opcoes_dict = {}
         def get_opts(col_df):
             if col_df in df.columns:
                 opcoes = sorted(df[col_df].dropna().unique())
                 return [{"label": "Todos", "value": "Todos"}] + [{"label": str(o), "value": o} for o in opcoes]
             return [{"label": "Todos", "value": "Todos"}]
 
-        # A ordem deve ser a mesma da lista de Outputs
-        return [get_opts(mapa_cols[k]) for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]]
+        for k, col in mapa_cols.items():
+            opcoes_dict[k] = get_opts(col)
+            
+        return opcoes_dict
 
+    # 2. Atualiza os Dropdowns com base no Store e no Search Value (Injeta "Selecionar Todos")
+    @app.callback(
+        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        Input("store_opcoes_exe", "data"),
+        [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]]
+    )
+    def atualiza_dropdowns_exe(opcoes_base, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp):
+        if not opcoes_base:
+            return [[{"label": "Todos", "value": "Todos"}] for _ in range(8)]
+        
+        ctx = callback_context
+        trigger_id = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
+        
+        # Lista de search values na mesma ordem dos outputs
+        search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp]
+        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]
+        
+        outputs = []
+        for i, key in enumerate(keys):
+            base = opcoes_base.get(key, [])
+            search = search_values[i]
+            
+            if search:
+                # Adiciona opção especial no topo
+                outputs.append([{"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"}] + base)
+            else:
+                outputs.append(base)
+        
+        return outputs
 
     # 1. UI -> STORE (Salva alterações e aplica lógica do "Todos")
     @app.callback(
@@ -99,9 +133,10 @@ def registrar_callbacks_execucao(app):
         Input("exe-orgao", "value"), Input("exe-coordenacao", "value"), Input("exe-acao", "value"), Input("exe-projeto", "value"),
         Input("exe-elemento", "value"), Input("exe-vinculacao", "value"),
         Input("exe-fonte", "value"), Input("exe-despesa", "value"),
-        State("store_filtros", "data"), prevent_initial_call=True
+        State("store_filtros", "data"), 
+        State("store_opcoes_exe", "data"), prevent_initial_call=True
     )
-    def salva_filtros_exe(n_clicks, ano, mes, orgao, coord, acao, proj, elem, vinc, fonte, desp, store):
+    def salva_filtros_exe(n_clicks, ano, mes, orgao, coord, acao, proj, elem, vinc, fonte, desp, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -115,16 +150,34 @@ def registrar_callbacks_execucao(app):
                     "acao": ["Todos"], "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
                     "fonte": ["Todos"], "despesa": ["Todos"]}
         
+        # Função para expandir "SELECT_ALL"
+        def processar_selecao(selecao, key):
+            if not selecao: return ["Todos"]
+            nova_selecao = []
+            expandiu = False
+            for item in selecao:
+                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
+                    termo = item.split("SELECT_ALL:")[1].lower()
+                    # Busca nas opções base
+                    if opcoes_base and key in opcoes_base:
+                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower() and opt["value"] != "Todos"]
+                        nova_selecao.extend(matches)
+                    expandiu = True
+                else:
+                    nova_selecao.append(item)
+            
+            return tratar_selecao_todos(nova_selecao, store.get(key)) if not expandiu else nova_selecao
+
         store.update({
             "ano": ano, "mes": mes,
-            "orgao": tratar_selecao_todos(orgao, store.get("orgao")),
-            "coordenacao": tratar_selecao_todos(coord, store.get("coordenacao")),
-            "acao": tratar_selecao_todos(acao, store.get("acao")),
-            "projeto": tratar_selecao_todos(proj, store.get("projeto")),
-            "elemento": tratar_selecao_todos(elem, store.get("elemento")),
-            "vinculacao": tratar_selecao_todos(vinc, store.get("vinculacao")),
-            "fonte": tratar_selecao_todos(fonte, store.get("fonte")),
-            "despesa": tratar_selecao_todos(desp, store.get("despesa"))
+            "orgao": processar_selecao(orgao, "orgao"),
+            "coordenacao": processar_selecao(coord, "coordenacao"),
+            "acao": processar_selecao(acao, "acao"),
+            "projeto": processar_selecao(proj, "projeto"),
+            "elemento": processar_selecao(elem, "elemento"),
+            "vinculacao": processar_selecao(vinc, "vinculacao"),
+            "fonte": processar_selecao(fonte, "fonte"),
+            "despesa": processar_selecao(desp, "despesa")
         })
         return store
 
@@ -286,4 +339,4 @@ def registrar_callbacks_execucao(app):
             return no_update
         
         df_excel = pd.DataFrame(dados_tabela)
-        return dcc.send_data_frame(df_excel.to_excel, "execucao_orcamentaria.xlsx", index=False)
+        return dcc.send_data_frame(df_excel.to_excel, "execucao_orcamentaria.xlsx", index=False, sheet_name="Execução")

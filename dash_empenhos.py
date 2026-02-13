@@ -4,11 +4,11 @@ from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 from dash import dash_table as dt
 from dash.dash_table.Format import Format, Scheme, Symbol, Group
-from filtros import layout_filtros_padrao, ano_padrao
+from filtros import layout_filtros_padrao, ano_padrao, criar_label_com_tooltip
 from utils import (
     carrega_base, gera_tabela_pivot, cabecalho_padrao,
     tratar_selecao_todos, monta_cards_resumo, DE_PARA_EMPENHOS, DE_PARA_INDICES_EMPENHOS,
-    gera_card_atualizacao,
+    gera_card_atualizacao, descrição_cards
 )
 from gerar_pdf import criar_relatorio_empenho_pdf
 
@@ -21,18 +21,27 @@ def layout_empenhos():
         
         # CARDS + INFO ATUALIZAÇÃO
         html.Div(id="emp-cards-container", className="mb-4"),
+        # Store para opções de empenhos
+        dcc.Store(id="store_opcoes_emp", storage_type="memory"),
         
         layout_filtros_padrao("emp"),
         
         dbc.Row([
-            dbc.Col([html.Label("Nº Empenho", className="fw-bold"), dcc.Dropdown(id="emp-filtro-empenho", multi=True)], md=2),
-            dbc.Col([html.Label("Objeto do Empenho", className="fw-bold"), 
-                     dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True)], md=7),
+            dbc.Col([
+                criar_label_com_tooltip("Nº Empenho", "emp"),
+                dcc.Dropdown(id="emp-filtro-empenho", multi=True)], md=2),
+            dbc.Col([
+                criar_label_com_tooltip("Objeto do Empenho", "emp"),
+                dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True)], md=7),
         ], className="mb-4", justify="center"),
 
         dbc.Row([
-            dbc.Col([html.Label("Processo", className="fw-bold"), dcc.Dropdown(id="emp-filtro-processo", multi=True)], md=2),
-            dbc.Col([html.Label("Credor", className="fw-bold"), dcc.Dropdown(id="emp-filtro-credor", multi=True)], md=7),
+            dbc.Col([
+                criar_label_com_tooltip("Processo SEI", "emp"),
+                dcc.Dropdown(id="emp-filtro-processo", multi=True)], md=2),
+            dbc.Col([
+                criar_label_com_tooltip("Credor", "emp"),
+                dcc.Dropdown(id="emp-filtro-credor", multi=True)], md=7),
         ], className="mb-4", justify="center"),
 
         dbc.Row([
@@ -65,7 +74,19 @@ def layout_empenhos():
             id="emp-tabela",
             style_table={"overflowX": "auto"},
             style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Calibri, sans-serif"},
-            style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Calibri, sans-serif"},
+            style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Calibri, sans-serif", "whiteSpace": "normal", "height": "auto"},
+            style_cell_conditional=[
+                {
+                    'if': {'column_id': 'anexo_descricaoAnexo'},
+                    'width': '400px',
+                    'maxWidth': '400px',
+                    'minWidth': '200px'
+                },
+                {
+                    'if': {'column_id': 'codProcesso'},
+                    'whiteSpace': 'nowrap'
+                }
+            ],
             page_size=25, sort_action="native", #filter_action="native"
         ),
         dcc.Download(id="emp-download-xlsx"),
@@ -79,28 +100,57 @@ def layout_empenhos():
 
 def registrar_callbacks_empenhos(app):
     
-    # 1. Popula Dropdowns Específicos
+    # 1. Carrega Opções Base para o Store
     @app.callback(
-        [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
-                                                     "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
-        [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options")],
+        Output("store_opcoes_emp", "data"),
         Input("emp-ano", "value")
     )
-    def popula_opts(ano):
+    def carrega_opcoes_base_emp(ano):
         df = carrega_base("empenhos", ano, None)
-        if df.empty: return [[]] * 11
+        if df.empty: return {}
+        
         def opts(col): 
             if col not in df.columns: return []
             return [{"label": str(v), "value": v} for v in sorted(df[col].dropna().unique())]
         def opts_todos(col):
             return [{"label": "Todos", "value": "Todos"}] + opts(col)
         
-        return (opts_todos("orgao"), opts_todos("coordenacao"), opts_todos("acao_programatica"),
-                opts_todos("codProjetoAtividade"), opts_todos("nome_elemento"), opts_todos("codVinculacaoRecurso"),
-                opts_todos("txDescricaoFonteRecurso"), opts_todos("codDespesa"), opts("codEmpenho"), opts("codProcesso"),
-                opts("txtRazaoSocial"), opts("anexo_descricaoAnexo"))
+        return {
+            "orgao": opts_todos("orgao"), "coordenacao": opts_todos("coordenacao"), 
+            "acao": opts_todos("acao_programatica"), "projeto": opts_todos("codProjetoAtividade"),
+            "elemento": opts_todos("nome_elemento"), "vinculacao": opts_todos("codVinculacaoRecurso"),
+            "fonte": opts_todos("txDescricaoFonteRecurso"), "despesa": opts_todos("codDespesa"),
+            "filtro-empenho": opts("codEmpenho"), "filtro-processo": opts("codProcesso"),
+            "filtro-credor": opts("txtRazaoSocial"), "filtro-objeto": opts("anexo_descricaoAnexo")
+        }
 
-    # 2. UI -> STORE (Salva alterações e aplica lógica do "Todos")
+    # 2. Atualiza Dropdowns com Search Value
+    @app.callback(
+        [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
+                                                     "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
+        [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options")],
+        Input("store_opcoes_emp", "data"),
+        [Input(f"emp-{col}", "search_value") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
+                                                     "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
+        [Input("emp-filtro-credor", "search_value"), Input("emp-filtro-objeto", "search_value")]
+    )
+    def atualiza_dropdowns_emp(opcoes_base, *search_values):
+        if not opcoes_base: return [[]] * 12
+        
+        keys = ["orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa", 
+                "filtro-empenho", "filtro-processo", "filtro-credor", "filtro-objeto"]
+        
+        outputs = []
+        for i, key in enumerate(keys):
+            base = opcoes_base.get(key, [])
+            search = search_values[i]
+            if search:
+                outputs.append([{"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"}] + base)
+            else:
+                outputs.append(base)
+        return outputs
+
+    # 3. UI -> STORE (Salva alterações e aplica lógica do "Todos" e "Select All")
     @app.callback(
         Output("store_filtros", "data", allow_duplicate=True),
         Input("emp-btn-limpar", "n_clicks"), Input("emp-ano", "value"),
@@ -108,9 +158,10 @@ def registrar_callbacks_empenhos(app):
         Input("emp-acao", "value"), Input("emp-projeto", "value"),
         Input("emp-elemento", "value"), Input("emp-vinculacao", "value"),
         Input("emp-fonte", "value"), Input("emp-despesa", "value"),
-        State("store_filtros", "data"), prevent_initial_call=True
+        State("store_filtros", "data"), 
+        State("store_opcoes_emp", "data"), prevent_initial_call=True
     )
-    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, store):
+    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -119,16 +170,31 @@ def registrar_callbacks_empenhos(app):
             return {**store, "ano": ano_padrao, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
                     "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], "fonte": ["Todos"], "despesa": ["Todos"]}
         
+        def processar_selecao(selecao, key):
+            if not selecao: return ["Todos"]
+            nova_selecao = []
+            expandiu = False
+            for item in selecao:
+                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
+                    termo = item.split("SELECT_ALL:")[1].lower()
+                    if opcoes_base and key in opcoes_base:
+                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower() and opt["value"] != "Todos"]
+                        nova_selecao.extend(matches)
+                    expandiu = True
+                else:
+                    nova_selecao.append(item)
+            return tratar_selecao_todos(nova_selecao, store.get(key)) if not expandiu else nova_selecao
+
         store.update({
             "ano": ano,
-            "orgao": tratar_selecao_todos(orgao, store.get("orgao")),
-            "coordenacao": tratar_selecao_todos(coord, store.get("coordenacao")),
-            "acao": tratar_selecao_todos(acao, store.get("acao")),
-            "projeto": tratar_selecao_todos(proj, store.get("projeto")),
-            "elemento": tratar_selecao_todos(elem, store.get("elemento")),
-            "vinculacao": tratar_selecao_todos(vinc, store.get("vinculacao")),
-            "fonte": tratar_selecao_todos(fonte, store.get("fonte")),
-            "despesa": tratar_selecao_todos(desp, store.get("despesa"))
+            "orgao": processar_selecao(orgao, "orgao"),
+            "coordenacao": processar_selecao(coord, "coordenacao"),
+            "acao": processar_selecao(acao, "acao"),
+            "projeto": processar_selecao(proj, "projeto"),
+            "elemento": processar_selecao(elem, "elemento"),
+            "vinculacao": processar_selecao(vinc, "vinculacao"),
+            "fonte": processar_selecao(fonte, "fonte"),
+            "despesa": processar_selecao(desp, "despesa")
         })
         return store
 
@@ -183,9 +249,10 @@ def registrar_callbacks_empenhos(app):
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
         Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
-        Input("emp-checklist-colunas", "value")
+        Input("emp-checklist-colunas", "value"),
+        State("store_opcoes_emp", "data")
     )
-    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
+    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas, opcoes_base):
         if not store or not store.get("ano"):
             return (no_update,) * 4
         
@@ -208,11 +275,25 @@ def registrar_callbacks_empenhos(app):
                 else:
                     df = df[df[col_df].isin(vals)]
         
+        # Função auxiliar para expandir filtros locais
+        def expandir_local(selecao, key):
+            if not selecao: return []
+            nova = []
+            for item in selecao:
+                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
+                    termo = item.split("SELECT_ALL:")[1].lower()
+                    if opcoes_base and key in opcoes_base:
+                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower()]
+                        nova.extend(matches)
+                else:
+                    nova.append(item)
+            return nova
+
         # Filtros Locais (Empenho/Processo)
-        if f_empenho: df = df[df["codEmpenho"].isin(f_empenho)]
-        if f_processo: df = df[df["codProcesso"].isin(f_processo)]
-        if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
-        if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
+        if f_empenho: df = df[df["codEmpenho"].isin(expandir_local(f_empenho, "filtro-empenho"))]
+        if f_processo: df = df[df["codProcesso"].isin(expandir_local(f_processo, "filtro-processo"))]
+        if f_credor: df = df[df["txtRazaoSocial"].isin(expandir_local(f_credor, "filtro-credor"))]
+        if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(expandir_local(f_objeto, "filtro-objeto"))]
 
         # 1. Cards
         data_ext = "-"
@@ -322,7 +403,43 @@ def registrar_callbacks_empenhos(app):
             return no_update
         
         df_excel = pd.DataFrame(dados_tabela)
-        return dcc.send_data_frame(df_excel.to_excel, "empenhos.xlsx", index=False)
+        return dcc.send_data_frame(df_excel.to_excel, "empenhos.xlsx", index=False, sheet_name="Empenhos")
+
+    # 10. EXPANDIR SELEÇÃO LOCAL (UI)
+    @app.callback(
+        Output("emp-filtro-empenho", "value", allow_duplicate=True),
+        Output("emp-filtro-processo", "value", allow_duplicate=True),
+        Output("emp-filtro-credor", "value", allow_duplicate=True),
+        Output("emp-filtro-objeto", "value", allow_duplicate=True),
+        Input("emp-filtro-empenho", "value"),
+        Input("emp-filtro-processo", "value"),
+        Input("emp-filtro-credor", "value"),
+        Input("emp-filtro-objeto", "value"),
+        State("store_opcoes_emp", "data"),
+        prevent_initial_call=True
+    )
+    def expandir_selecao_ui(v_emp, v_proc, v_cred, v_obj, opcoes_base):
+        ctx = callback_context
+        if not ctx.triggered or not opcoes_base: return no_update, no_update, no_update, no_update
+        
+        def process(val, key):
+            if not val: return no_update
+            has_select_all = any(isinstance(x, str) and x.startswith("SELECT_ALL:") for x in val)
+            if not has_select_all: return no_update
+            
+            nova = []
+            for item in val:
+                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
+                    termo = item.split("SELECT_ALL:")[1].lower()
+                    if key in opcoes_base:
+                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower()]
+                        nova.extend(matches)
+                else:
+                    nova.append(item)
+            return list(set(nova))
+
+        return (process(v_emp, "filtro-empenho"), process(v_proc, "filtro-processo"), 
+                process(v_cred, "filtro-credor"), process(v_obj, "filtro-objeto"))
 
     # 9. LIMPA FILTROS LOCAIS
     @app.callback(

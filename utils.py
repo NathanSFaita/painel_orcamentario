@@ -89,14 +89,26 @@ def formata_moeda(valor):
 descrição_cards = {
     "Orçado Inicial": "Valor aprovado na Lei Orçamentária Anual (LOA).",
     "Orçado Atualizado": "Orçamento inicial ajustado por créditos adicionais, suplementações e reduções.",
-    "Disponível": "Saldo livre para empenhos (Orçado Atualizado - Reservado - Congelado).",
+    "Disponível": "Saldo livre para empenhos (Disponível = Orçado Atualizado - Reservado - Congelado).",
     "Congelado": "Parcela do orçamento bloqueada pela Secretaria da Fazenda (SF).",
-    "Reservado": "Valor reservado para futura contratação (Reserva de Dotação).",
+    "Reservado": "Valor reservado para futura contratação.",
     "Empenhado": "Valor comprometido com credores para entrega de bens ou serviços.",
     "Liquidado": "O bem foi entregue ou o serviço foi prestado, e o credor poderá receber o pagamento.",
     "Pago": "Pagamento foi efetivamente realizado ao credor.",
     "Saldo de Dotação": "Diferença entre o valor Disponível e o Reservado.",
-    "Saldo de Reserva": "Valor que ainda precisa ser reservado (Reservado - Empenhado)."
+    "Saldo de Reserva": "Valor que ainda precisa ser empenhado (Saldo de Reserva = Reservado - Empenhado).",
+    "Órgão": "Unidade orçamentária responsável pela despesa.",
+    "Coordenação": "Coordenação gestora pela despesa.",
+    "Atividade": "Atividade continuada de cada coordenação",
+    "Ação": "Código numérico da atividade.",
+    "Despesa (Código)": "Código numérico da despesa (ex: 339000 - Serviços de Terceiros - Pessoa Jurídica).",
+    "Elemento de Despesa": "Classificação do objeto do gasto orçamentário (ex: material de consumo, serviços de terceiros, etc).",
+    "Vinculação": "Código numérico da vinculação.",
+    "Fonte": "Indica se a despesa possui ou não alguma vinculação específica (Orçamento Cidadão, Emendas etc.).",
+    "Credor": "Nome do fornecedor ou prestador de serviço do empenho.",
+    "Nº Empenho": "Número identificador do empenho.",
+    "Processo SEI": "Número do processo no Sistema Eletrônico de Informações (SEI) relacionado ao empenho.",
+    "Objeto do Empenho": "Descrição do objeto ou serviço contratado no empenho."
 }
 
 def monta_cards_resumo(dados_totais, mapa_colunas):
@@ -289,8 +301,8 @@ def carrega_base(base, ano, mes):
                 'vinculacao': str
             }
             if os.path.exists(caminho):
-                return pd.read_excel(caminho, dtype=dtype_map)
-            return pd.DataFrame()
+                df = pd.read_excel(caminho, dtype=dtype_map)
+            else: df = pd.DataFrame()
         else:
             caminho = os.path.join(BASE_DIR, "base_empenhos", f"empenhos_{ano}.csv")
             # Colunas de filtro que podem ser lidas como números, mas devem ser tratadas como texto
@@ -306,8 +318,16 @@ def carrega_base(base, ano, mes):
                 'anoContrato': str
             }
             if os.path.exists(caminho):
-                return pd.read_csv(caminho, sep=';', dtype=dtype_map, low_memory=False)
-            return pd.DataFrame()
+                df = pd.read_csv(caminho, sep=';', dtype=dtype_map, low_memory=False)
+            else: df = pd.DataFrame()
+
+        if not df.empty:
+            # Ajuste de terminologia: Desaparecidas -> Desaparecidos
+            for col in ["coordenação", "coordenacao", "acao_programatica"]:
+                if col in df.columns:
+                    df[col] = df[col].str.replace("Desaparecidas", "Desaparecidos", regex=False)
+        
+        return df
     except Exception as e:
-        print(f"Erro ao carregar base '{base}' de '{caminho}': {e}")
+        print(f"Erro ao carregar base '{base}': {e}")
         return pd.DataFrame()
