@@ -7,7 +7,7 @@ import os
 
 # Configurações iniciais
 TOKEN = os.getenv("API_TOKEN_SF")
-TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+# TOKEN = ""
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação

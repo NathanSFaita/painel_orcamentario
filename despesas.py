@@ -26,8 +26,8 @@ def main():
     if dt_inicio.month < 10:
        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
     # Configurações iniciais
-    #TOKEN = ""
     TOKEN = os.getenv("API_TOKEN_SF")
+    #TOKEN = ""
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
