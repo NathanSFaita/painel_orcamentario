@@ -87,9 +87,17 @@ def layout_sobre():
             dbc.Collapse(
                 dbc.CardBody([
                     html.P(
-                        "O Orçamento Municipal",
+                        "O Orçamento Público é o instrumento que o governo utiliza para planejar e controlar as receitas e despesas públicas. " \
+                        "Ele é elaborado anualmente e serve como base para a gestão financeira do município.",                        
                         className="card-text"
                     ),
+                    html.P(
+                        "Historicamente, o orçamento público foi construído com a função de controle político dos órgãos de representação  " \
+                        "(Legislativo) sobre o Executivo. Por isso, ele não se consolidou como um mero banlancete contábil com " \
+                        "informações financeiras, pois foi necessário dotá-lo de informações úteis que permitissem " \
+                        "a compreensão sobre o que estava sendo gasto, para que e com qual objetivo. (GIACOMONI, 2017)",
+                        className="card-text"
+                    )
                 ]),
                 id="collapse-orcamento", is_open=True
             )
@@ -98,7 +106,7 @@ def layout_sobre():
         dbc.Card([
             dbc.CardHeader(
                 html.Div([
-                    html.H5("Códigos Orçamentários (Dotação)", className="m-0"),
+                    html.H5("Dotação Orçamentária (Códigos)", className="m-0"),
                     dbc.Button("➖/➕", id="btn-collapse-dotacao", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
                 ], className="d-flex align-items-center")
             ),
@@ -109,9 +117,41 @@ def layout_sobre():
                         "Eles seguem uma lógica que permite fácilmente identificar o objetivo, natureza e origem de cada gasto público, " \
                         "além de outros detalhes importantes para a gestão financeira do município.",
                         className="card-text"),
-                    html.H5("Estrutura da dotação orçamentária", className="mt-4"),
-                    html.Img(src="/assets/estrutura_dotacao.png", className="img-fluid", alt="Estrutura da Dotação Orçamentária")
-                ]),
+                    html.H5("Estrutura da dotação orçamentária - CPM", className="mt-4"),
+                    html.Img(src="/assets/dotacao_mulheres.png", className="img-fluid", 
+                             alt="Exemplo de estrutura de uma dotação orçamentária da coordenação de Políticas para Mulheres", 
+                             style={"border": "1px solid #ddd", "borderRadius": "5px", "padding": "10px"}),
+                    html.P("A dotação acima representa um gasto orçamentário especifico da Coordenação de Políticas para Mulheres. " \
+                           "A ação orçamentária 6178, correspondente à parte funcional-programática do código, " \
+                           "engloba as atividades referentes aos equipamentos públicos voltados ao atendimento de mulheres."
+                           , className="card-text mt-3"),
+                    html.P("Quanto à parte da natureza econômica, o conjunto dos códigos representa o financiamento " \
+                           "das parcerias com Organizações da Sociedade Civil (OSC), indicado pela Modalidade de Aplicação " \
+                           "50 (Transferências à Instituições Privadas sem Fins Lucrativos) e do Elemento de Despesa 39 " \
+                           "(Outros Serviços de Terceiros - Pessoa Jurídica)." \
+                           "O conjunto desses códigos (33503900) representa, portanto, o financiamento das parcerias com as OSCs", 
+                           className="card-text"),
+                    html.P("Já na parte da fonte, o conjunto 00.1.500.9001 representa recursos provenientes do Tesouro Municipal " \
+                           "sem destinação pré-definida, ou seja, recursos que podem ser alocados para qualquer finalidade.",
+                           className="card-text"),
+                    html.Br(),
+                    html.H5("Estrutura da dotação orçamentária - SESANA", className="mt-4"),
+                    html.Img(src="/assets/dotacao_sesana.png", className="img-fluid", 
+                             alt="Exemplo de estrutura de uma dotação orçamentária da Secretaria Executiva de Segurança Alimentar e Nutricional e de Abastecimento", 
+                                style={"border": "1px solid #ddd", "borderRadius": "5px", "padding": "10px"}),
+                    html.P("Já a dotação acima representa um gasto orçamentário de uma ação de SESANA, representado pela " \
+                            "ação orçamentária 4426 (Políticas, Programas e Ações de Subsistência, Segurança Alimentar e Nutricional)"
+                            , className="card-text mt-3"),
+                    html.P("Quanto à parte da natureza econômica, repare que a Modalidade de Aplicação mudou (90 - Aplicações Diretas), " \
+                           "enquanto o Elemento de Despesa é o mesmo (39 - Outros Serviços de Terceiros - Pessoa Jurídica). " \
+                           "Com isso, o conjunto do código 33903900 representa o custeio com contratos com " \
+                           "Instituições Privadas com Fins Lucrativos, ou seja, contratações de serviços gerais", 
+                           className="card-text"),
+                    html.P("Já na parte da fonte, destaca-se que o código 00.1.500.9005 rerepresenta recursos provenientes do Tesouro Municipal " \
+                           "com destinação para o Orçamento Cidadão", 
+                           className="card-text"),
+                    html.Br(),
+                                    ]),
                 id="collapse-codigos", is_open=True
             )
         ], className="shadow-sm mb-5"),
