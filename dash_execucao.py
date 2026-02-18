@@ -10,6 +10,9 @@ from utils import (carrega_base, lista_meses, gera_tabela_pivot,
                    DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, gera_card_atualizacao)
 from gerar_pdf import criar_relatorio_execucao_pdf
 
+# Mapa completo de colunas disponíveis para seleção
+MAPA_COLUNAS_EXECUCAO = {**DE_PARA_INDICES_EXECUCAO, **DE_PARA_EXECUCAO}
+
 def layout_execucao():
     return dbc.Container([
         cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "📈 Execução Orçamentária"),
@@ -24,8 +27,27 @@ def layout_execucao():
             dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", color="warning", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
-            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", color="info", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=1),
+            dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", color="info", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
+            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", color="secondary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=1),
         ], className="mb-4", justify="center"),
+
+        # MODAL DE SELEÇÃO DE COLUNAS
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle("Selecionar Colunas para Exibição")),
+            dbc.ModalBody([
+                html.Div([
+                    dbc.Button("✅ Selecionar Tudo", id="exe-btn-sel-todos", size="sm", color="primary", outline=True, className="me-2"),
+                    dbc.Button("❌ Desmarcar Tudo", id="exe-btn-des-todos", size="sm", color="secondary", outline=True),
+                ], className="mb-3 d-flex justify-content-center"),
+                dbc.Checklist(
+                    id="exe-checklist-colunas",
+                    options=[{"label": v, "value": k} for k, v in MAPA_COLUNAS_EXECUCAO.items()],
+                    value=list(MAPA_COLUNAS_EXECUCAO.keys()), # Todas selecionadas por padrão
+                    switch=True,
+                )
+            ]),
+            dbc.ModalFooter(dbc.Button("Fechar", id="exe-btn-fechar-modal", className="ms-auto", n_clicks=0))
+        ], id="exe-modal-colunas", is_open=False),
 
         html.H5("Detalhamento", className="fw-bold"),
         dt.DataTable(
@@ -196,14 +218,45 @@ def registrar_callbacks_execucao(app):
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
                 store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))
 
-    # 3. GERA DADOS (Cards + Tabela)
+    # 3. CONTROLE DO MODAL DE COLUNAS
+    @app.callback(
+        Output("exe-modal-colunas", "is_open"),
+        Input("exe-btn-colunas", "n_clicks"),
+        Input("exe-btn-fechar-modal", "n_clicks"),
+        State("exe-modal-colunas", "is_open"),
+        prevent_initial_call=True
+    )
+    def toggle_modal_colunas(n1, n2, is_open):
+        if n1 or n2:
+            return not is_open
+        return is_open
+
+    # 4. CONTROLE DOS BOTÕES SELECIONAR/DESMARCAR TUDO
+    @app.callback(
+        Output("exe-checklist-colunas", "value"),
+        Input("exe-btn-sel-todos", "n_clicks"),
+        Input("exe-btn-des-todos", "n_clicks"),
+        State("exe-checklist-colunas", "options"),
+        prevent_initial_call=True
+    )
+    def controlar_botoes_selecao(n_sel, n_des, options):
+        ctx = callback_context
+        if not ctx.triggered: return no_update
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        
+        if trigger_id == "exe-btn-sel-todos":
+            return [opt["value"] for opt in options]
+        return [] # Retorna lista vazia para desmarcar tudo
+
+    # 5. GERA DADOS (Cards + Tabela)
     @app.callback(
         Output("exe-info-atualizacao", "children"),
         Output("exe-cards-container", "children"),
         Output("exe-tabela", "data"), Output("exe-tabela", "columns"),
-        Input("store_filtros", "data")
+        Input("store_filtros", "data"),
+        Input("exe-checklist-colunas", "value")
     )
-    def atualiza_dashboard_exe(store):
+    def atualiza_dashboard_exe(store, cols_selecionadas):
         if not store or not store.get("mes"):
             return no_update, [], [], []
 
@@ -257,6 +310,11 @@ def registrar_callbacks_execucao(app):
         # Gera componentes
         cards = monta_cards_resumo(totais, DE_PARA_EXECUCAO)
         pivot = gera_tabela_pivot(df, "execucao")
+
+        # Filtra as colunas do DataFrame com base na seleção do usuário
+        if cols_selecionadas:
+            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            pivot = pivot[cols_to_keep]
         
         cols_table = []
         
@@ -290,14 +348,15 @@ def registrar_callbacks_execucao(app):
 
         return card_atualizacao, cards, pivot.to_dict("records"), cols_table
 
-    # 4. GERA E FAZ DOWNLOAD DO PDF
+    # 6. GERA E FAZ DOWNLOAD DO PDF
     @app.callback(
         Output("exe-download-pdf", "data"),
         Input("exe-btn-download-pdf", "n_clicks"),
         State("store_filtros", "data"),
+        State("exe-checklist-colunas", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_exe(n_clicks, store):
+    def download_pdf_exe(n_clicks, store, cols_selecionadas):
         if not store or not store.get("mes"):
             return no_update
 
@@ -325,6 +384,11 @@ def registrar_callbacks_execucao(app):
         totais["Saldo de Dotação"] = orcado - empenhado
 
         pivot = gera_tabela_pivot(df, "execucao")
+
+        # Filtra colunas para o PDF também
+        if cols_selecionadas:
+            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            pivot = pivot[cols_to_keep]
         
         pdf_bytes = criar_relatorio_execucao_pdf(store, totais, pivot)
         return dcc.send_bytes(pdf_bytes, "relatorio_execucao.pdf")

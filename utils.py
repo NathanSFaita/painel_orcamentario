@@ -15,6 +15,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DE_PARA_INDICES_EXECUCAO = {
     "orgao": "Órgão",
     "coordenação": "Coordenação",
+    "politicas_para": "Descrição",
     "acao_programatica": "Atividade",
     "projeto_atividade": "Ação",
     "nome_elemento": "Elemento de Despesa",
@@ -40,6 +41,7 @@ DE_PARA_INDICES_EMPENHOS = {
     "codEmpenho": "Nº Empenho",
     "codProcesso": "Processo SEI",
     "coordenacao": "Coordenação",
+    "politicas_para": "Descrição",
     "acao_programatica": "Atividade",
     "codVinculacaoRecurso": "Vinculação",
     "codDespesa": "Despesa",
