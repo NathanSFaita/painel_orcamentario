@@ -124,7 +124,7 @@ def layout_sobre():
                     html.P(
                         "Uma das classificações mais importantes do orçamento público, pois "\
                         "tem como objetivo  fornecer as bases para a apresentação de dados e estatísticas sobre os gastos públicos nos "\
-                        "principais segmentos em que atuam as organizações do Estado. (GIACOMONI, 2007)"\
+                        "principais segmentos em que atuam as organizações do Estado. (GIACOMONI, 2007). "\
                         "Se divide em Função, Subfunção, Programa e Projeto/Atividade:",
                         className="card-text"),
                     html.Ul([

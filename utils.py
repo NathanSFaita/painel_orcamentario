@@ -39,6 +39,7 @@ DE_PARA_EXECUCAO = {
 DE_PARA_INDICES_EMPENHOS = {
     "orgao": "Órgão",
     "codEmpenho": "Nº Empenho",
+    "datEmpenho": "Data do Empenho",
     "codProcesso": "Processo SEI",
     "coordenacao": "Coordenação",
     "politicas_para": "Descrição",
@@ -108,6 +109,7 @@ descrição_cards = {
     "Vinculação": "Código numérico da vinculação.",
     "Fonte": "Indica se a despesa possui ou não alguma vinculação específica (Orçamento Cidadão, Emendas etc.).",
     "Credor": "Nome do fornecedor ou prestador de serviço do empenho.",
+    "Data do Empenho": "Data em que o empenho foi emitido.",
     "Nº Empenho": "Número identificador do empenho.",
     "Processo SEI": "Número do processo no Sistema Eletrônico de Informações (SEI) relacionado ao empenho.",
     "Objeto do Empenho": "Descrição do objeto ou serviço contratado no empenho."
@@ -136,7 +138,7 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
                     html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold", "fontSize": "22px"})
                 ])
             ], className="h-100 shadow-sm", style={"backgroundColor": cor_fundo, "border": "none"})
-        ], style={"width": "20%", "flex": "0 1 15%"}, className="mb-3")
+        ], style={"width": "20%", "flex": "0 1 15%"}, md=2, className="mb-3")
 
     # Função auxiliar para criar quebra de linha
     def criar_quebra():

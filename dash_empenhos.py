@@ -27,24 +27,6 @@ def layout_empenhos():
         layout_filtros_padrao("emp"),
         
         dbc.Row([
-            dbc.Col([
-                criar_label_com_tooltip("Nº Empenho", "emp"),
-                dcc.Dropdown(id="emp-filtro-empenho", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=2),
-            dbc.Col([
-                criar_label_com_tooltip("Objeto do Empenho", "emp"),
-                dcc.Dropdown(id="emp-filtro-objeto", multi=True, closeOnSelect=False, clearable=True, style={"maxHeight": "45px", "overflowY": "visible"})], md=7),
-        ], className="mb-2", justify="center"),
-
-        dbc.Row([
-            dbc.Col([
-                criar_label_com_tooltip("Processo SEI", "emp"),
-                dcc.Dropdown(id="emp-filtro-processo", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=2),
-            dbc.Col([
-                criar_label_com_tooltip("Credor", "emp"),
-                dcc.Dropdown(id="emp-filtro-credor", multi=True, closeOnSelect=False, style={"maxHeight": "45px", "overflowY": "visible"})], md=7),
-        ], className="mb-4", justify="center"),
-
-        dbc.Row([
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="emp-btn-limpar", color="warning", className="w-100 mt-4")], md=2),
             dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", color="secondary", className="w-100 mt-4")], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="emp-btn-colunas", color="info", className="w-100 mt-4")], md=2),
@@ -100,6 +82,17 @@ def layout_empenhos():
 
 def registrar_callbacks_empenhos(app):
     
+    # Callback para expandir/recolher filtros
+    @app.callback(
+        Output("emp-collapse-filtros", "is_open"),
+        Input("emp-btn-toggle-filtros", "n_clicks"),
+        State("emp-collapse-filtros", "is_open"),
+    )
+    def toggle_filtros_emp(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+
     # 1. Carrega Opções Base para o Store
     @app.callback(
         Output("store_opcoes_emp", "data"),
@@ -159,17 +152,19 @@ def registrar_callbacks_empenhos(app):
         Input("emp-acao", "value"), Input("emp-projeto", "value"),
         Input("emp-elemento", "value"), Input("emp-vinculacao", "value"),
         Input("emp-fonte", "value"), Input("emp-despesa", "value"), Input("emp-descricao", "value"),
+        Input("emp-date-picker", "start_date"), Input("emp-date-picker", "end_date"),
         State("store_filtros", "data"), 
         State("store_opcoes_emp", "data"), prevent_initial_call=True
     )
-    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
+    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, start_date, end_date, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
         
         if "emp-btn-limpar" in trigger_id:
             return {**store, "ano": ano_padrao, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
-                    "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], "fonte": ["Todos"], "despesa": ["Todos"]}
+                    "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], 
+                    "fonte": ["Todos"], "despesa": ["Todos"], "data_inicio": None, "data_fim": None}
         
         def processar_selecao(selecao, key):
             if not selecao: return ["Todos"]
@@ -196,22 +191,26 @@ def registrar_callbacks_empenhos(app):
             "vinculacao": processar_selecao(vinc, "vinculacao"),
             "fonte": processar_selecao(fonte, "fonte"),
             "despesa": processar_selecao(desp, "despesa"),
-            "descricao": processar_selecao(desc, "descricao")
+            "descricao": processar_selecao(desc, "descricao"),
+            "data_inicio": start_date,
+            "data_fim": end_date
         })
         return store
 
     # 3. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output("emp-ano", "value")] + [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
+        [Output("emp-ano", "value")] + [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]] +
+        [Output("emp-date-picker", "start_date"), Output("emp-date-picker", "end_date")],
         Input("store_filtros", "data")
     )
     def sync_ui_emp(store):
-        if not store: return (ano_padrao,) + (["Todos"],)*9
+        if not store: return (ano_padrao,) + (["Todos"],)*9 + (None, None)
         return (store.get("ano", ano_padrao),
                 store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
-                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]))
+                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]),
+                store.get("data_inicio"), store.get("data_fim"))
 
     # 4. CONTROLE DO MODAL DE COLUNAS
     @app.callback(
@@ -264,6 +263,10 @@ def registrar_callbacks_empenhos(app):
             card_atualizacao = gera_card_atualizacao("-")
             return card_atualizacao, html.Div("Sem dados."), [], []
 
+        # Formata data para remover hora
+        if "datEmpenho" in df.columns:
+            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce').dt.strftime('%d/%m/%Y')
+
         # Aplica Filtros Globais
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
@@ -290,6 +293,14 @@ def registrar_callbacks_empenhos(app):
                 else:
                     nova.append(item)
             return nova
+
+        # Filtro de Data (Range)
+        if store.get("data_inicio") and store.get("data_fim") and "datEmpenho" in df.columns:
+            # Converte a coluna de data (DD/MM/YYYY) para datetime
+            df["dt_temp"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors="coerce")
+            start = pd.to_datetime(store["data_inicio"])
+            end = pd.to_datetime(store["data_fim"])
+            df = df[(df["dt_temp"] >= start) & (df["dt_temp"] <= end)]
 
         # Filtros Locais (Empenho/Processo)
         if f_empenho: df = df[df["codEmpenho"].isin(expandir_local(f_empenho, "filtro-empenho"))]
@@ -365,6 +376,10 @@ def registrar_callbacks_empenhos(app):
         if df.empty:
             return no_update
 
+        # Formata data para remover hora
+        if "datEmpenho" in df.columns:
+            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce').dt.strftime('%d/%m/%Y')
+
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
                 "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para"}
@@ -374,6 +389,13 @@ def registrar_callbacks_empenhos(app):
             if "Todos" not in vals and col_df in df.columns:
                 df = df[df[col_df].isin(vals)]
         
+        # Filtro de Data
+        if store.get("data_inicio") and store.get("data_fim") and "datEmpenho" in df.columns:
+            df["dt_temp"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors="coerce")
+            start = pd.to_datetime(store["data_inicio"])
+            end = pd.to_datetime(store["data_fim"])
+            df = df[(df["dt_temp"] >= start) & (df["dt_temp"] <= end)]
+
         if f_empenho: df = df[df["codEmpenho"].isin(f_empenho)]
         if f_processo: df = df[df["codProcesso"].isin(f_processo)]
         if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]

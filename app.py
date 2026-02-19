@@ -21,7 +21,8 @@ app.layout = html.Div([
         "ano": ano_padrao, "mes": None,
         "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
         "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
-        "fonte": ["Todos"], "despesa": ["Todos"]
+        "fonte": ["Todos"], "despesa": ["Todos"],
+        "data_inicio": None, "data_fim": None
     }),
     
     html.Div(id="page-content")

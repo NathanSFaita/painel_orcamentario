@@ -67,6 +67,17 @@ def layout_execucao():
 
 def registrar_callbacks_execucao(app):
     
+    # Callback para expandir/recolher filtros
+    @app.callback(
+        Output("exe-collapse-filtros", "is_open"),
+        Input("exe-btn-toggle-filtros", "n_clicks"),
+        State("exe-collapse-filtros", "is_open"),
+    )
+    def toggle_filtros_exe(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+
     # @app.callback(
     #     Output("exe-mes", "options"), Output("exe-mes", "value"),
     #     Input("exe-ano", "value"),

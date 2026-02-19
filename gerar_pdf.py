@@ -98,9 +98,10 @@ def criar_relatorio_empenho_pdf(store, totais, df_tabela):
     pdf.cell(0, 10, '3. Detalhamento dos Empenhos', 0, 1, 'L')
     
     colunas_pdf = {
-        "acao_programatica": ("Atividade", 20), "nome_elemento": ("Elemento", 40),
+        "datEmpenho": ("Data Emp.", 20),
+        "acao_programatica": ("Atividade", 20), "nome_elemento": ("Elemento", 30),
         "codEmpenho": ("Nº Emp", 15), "codProcesso": ("Processo SEI", 25),
-        "txtRazaoSocial": ("Credor", 55), "anexo_descricaoAnexo": ("Objeto", 60),
+        "txtRazaoSocial": ("Credor", 50), "anexo_descricaoAnexo": ("Objeto", 55),
         "valEmpenhadoLiquido": ("Empenhado", 20), "valLiquidado": ("Liquidado", 20),
         "valPagoExercicio": ("Pago", 20)
     }
