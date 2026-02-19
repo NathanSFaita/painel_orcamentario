@@ -111,7 +111,7 @@ def layout_sobre():
                     html.H6("Classificação Institucional", className="mt-4"),
                     html.P(
                         "Esta parte evidencia quem é o responsável pela execução daquele gasto público, sendo um critério "\
-                        "indispensável no que tange a responsabilidade do gasto. (GIACOMONI, 2007)"\
+                        "indispensável no que tange a responsabilidade do gasto. (GIACOMONI, 2007). "\
                         "Se divide em órgão e unidade orçamentária:",
                         className="card-text"),
                     html.Ul([
