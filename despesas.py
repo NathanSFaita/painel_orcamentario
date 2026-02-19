@@ -27,7 +27,7 @@ def main():
        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
     # Configurações iniciais
     TOKEN = os.getenv("API_TOKEN_SF")
-    # TOKEN = ""
+    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
@@ -41,9 +41,9 @@ def main():
 
     URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
     
-    # ano = "2025"
-    # mes = "08"
-    # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2025/basedadosexecucao_1225.xlsx"
+    ano = "2025"
+    mes = "12"
+    URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2025/basedadosexecucao_1225.xlsx"
     orgaos_list = [8, 34, 78, 90]
 
     orcamento = pd.read_excel(URL_ORC)
@@ -323,7 +323,7 @@ def main():
         "projeto_atividade", "despesa", "vinculacao"
     ]
     # Remove duplicatas com base nas colunas que definem uma dotação orçamentária
-    df_final = df_final.drop_duplicates(subset=colunas_chave)
+    df_final = df_final.drop_duplicates()
 
     # Antes de salvar, crie a pasta do ano se não existir
     pasta_ano = os.path.join(BASE_DESPESAS, ano)

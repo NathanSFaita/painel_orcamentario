@@ -24,7 +24,7 @@ def layout_execucao():
         layout_filtros_padrao("exe"),
         
         dbc.Row([
-            dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
+            # dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
             dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", color="warning", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", color="info", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
@@ -67,37 +67,40 @@ def layout_execucao():
 
 def registrar_callbacks_execucao(app):
     
-    @app.callback(
-        Output("exe-mes", "options"), Output("exe-mes", "value"),
-        Input("exe-ano", "value"),
-        State("store_filtros", "data")
-    )
-    def atualiza_meses(ano, store):
-        if not ano: return [], None
-        meses = lista_meses("execucao", ano)
+    # @app.callback(
+    #     Output("exe-mes", "options"), Output("exe-mes", "value"),
+    #     Input("exe-ano", "value"),
+    #     State("store_filtros", "data")
+    # )
+    # def atualiza_meses(ano, store):
+    #     if not ano: return [], None
+    #     meses = lista_meses("execucao", ano)
         
-        # Se o ano mudou manualmente (diferente do store), pega o último mês.
-        # Se for load inicial ou reset (ano == store), respeita o mês do store.
-        ano_store = store.get("ano") if store else None
-        mes_store = store.get("mes") if store else None
+    #     # Se o ano mudou manualmente (diferente do store), pega o último mês.
+    #     # Se for load inicial ou reset (ano == store), respeita o mês do store.
+    #     ano_store = store.get("ano") if store else None
+    #     mes_store = store.get("mes") if store else None
         
-        if str(ano) != str(ano_store):
-            mes_selecionado = meses[-1] if meses else None
-        else:
-            mes_selecionado = mes_store if mes_store in meses else (meses[-1] if meses else None)
+    #     if str(ano) != str(ano_store):
+    #         mes_selecionado = meses[-1] if meses else None
+    #     else:
+    #         mes_selecionado = mes_store if mes_store in meses else (meses[-1] if meses else None)
             
-        return [{"label": m, "value": m} for m in meses], mes_selecionado
+    #     return [{"label": m, "value": m} for m in meses], mes_selecionado
 
     # 1. Gera as opções base e salva no Store (Separado da renderização visual)
     @app.callback(
         Output("store_opcoes_exe", "data"),
-        Input("exe-mes", "value"),
-        State("exe-ano", "value")
+        Input("exe-ano", "value")
     )
-    def carrega_opcoes_base_exe(mes, ano):
-        if not ano or not mes:
+    def carrega_opcoes_base_exe(ano):
+        if not ano:
             return {}
 
+        meses = lista_meses("execucao", ano)
+        mes = meses[-1] if meses else None
+        if not mes:
+            return {}
         df = carrega_base("execucao", ano, mes)
         if df.empty:
             return {}
@@ -153,14 +156,14 @@ def registrar_callbacks_execucao(app):
     # 1. UI -> STORE (Salva alterações e aplica lógica do "Todos")
     @app.callback(
         Output("store_filtros", "data", allow_duplicate=True),
-        Input("exe-btn-limpar", "n_clicks"), Input("exe-ano", "value"), Input("exe-mes", "value"),
+        Input("exe-btn-limpar", "n_clicks"), Input("exe-ano", "value"), # Input("exe-mes", "value")
         Input("exe-orgao", "value"), Input("exe-coordenacao", "value"), Input("exe-acao", "value"), Input("exe-projeto", "value"),
         Input("exe-elemento", "value"), Input("exe-vinculacao", "value"),
         Input("exe-fonte", "value"), Input("exe-despesa", "value"), Input("exe-descricao", "value"),
         State("store_filtros", "data"), 
         State("store_opcoes_exe", "data"), prevent_initial_call=True
     )
-    def salva_filtros_exe(n_clicks, ano, mes, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
+    def salva_filtros_exe(n_clicks, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -192,8 +195,12 @@ def registrar_callbacks_execucao(app):
             
             return tratar_selecao_todos(nova_selecao, store.get(key)) if not expandiu else nova_selecao
 
+        # A base a ser exibida é sempre a mais recente de cada ano
+        meses = lista_meses("execucao", ano)
+        mes_atualizado = meses[-1] if meses else None
+
         store.update({
-            "ano": ano, "mes": mes,
+            "ano": ano, "mes": mes_atualizado,
             "orgao": processar_selecao(orgao, "orgao"),
             "coordenacao": processar_selecao(coord, "coordenacao"),
             "acao": processar_selecao(acao, "acao"),
