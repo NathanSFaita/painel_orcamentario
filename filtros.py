@@ -57,6 +57,11 @@ def layout_filtros_padrao(prefixo):
                              style={"maxHeight": "45px", "overflowY": "visible"})
             ], md=2),
             dbc.Col([
+                criar_label_com_tooltip("Descrição da Coordenação", prefixo),
+                dcc.Dropdown(id=f"{prefixo}-descricao", multi=True, closeOnSelect=False,
+                             style={"maxHeight": "45px", "overflowY": "visible"})
+            ], md=2),
+            dbc.Col([
                 criar_label_com_tooltip("Ação", prefixo),
                 dcc.Dropdown(id=f"{prefixo}-projeto", multi=True, closeOnSelect=False, 
                              style={"maxHeight": "45px", "overflowY": "visible"})
@@ -65,7 +70,7 @@ def layout_filtros_padrao(prefixo):
                 criar_label_com_tooltip("Atividade", prefixo),
                 dcc.Dropdown(id=f"{prefixo}-acao", multi=True, closeOnSelect=False, 
                              style={"maxHeight": "45px", "overflowY": "visible"})
-            ], md=3),
+            ], md=2),
         ], className="mb-2", justify="center"),
         
         dbc.Row([

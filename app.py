@@ -20,7 +20,7 @@ app.layout = html.Div([
     dcc.Store(id="store_filtros", storage_type="session", data={ # Session mantém enquanto a aba estiver aberta
         "ano": ano_padrao, "mes": None,
         "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
-        "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
+        "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
         "fonte": ["Todos"], "despesa": ["Todos"]
     }),
     

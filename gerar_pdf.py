@@ -24,7 +24,13 @@ class PDF(FPDF):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         data_geracao = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        self.cell(0, 10, f'Gerado em: {data_geracao}', 0, 0, 'L')
+        
+        data_base = getattr(self, 'data_extracao', None)
+        texto_rodape = f'Gerado em: {data_geracao}'
+        if data_base and data_base != "-":
+            texto_rodape += f' | Base atualizada em: {data_base}'
+            
+        self.cell(0, 10, tratar_texto(texto_rodape), 0, 0, 'L')
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
 
 def criar_relatorio_empenho_pdf(store, totais, df_tabela):
@@ -269,12 +275,13 @@ def criar_relatorio_empenho_pdf(store, totais, df_tabela):
 
     return pdf.output(dest='S').encode('latin-1')
 
-def criar_relatorio_execucao_pdf(store, totais, df_tabela):
+def criar_relatorio_execucao_pdf(store, totais, df_tabela, data_extracao=None):
     """
     Gera o relatório de execução orçamentária em PDF.
     """
     pdf = PDF('L', 'mm', 'A4') # Paisagem
     pdf.titulo_relatorio = 'Relatório de Execução Orçamentária'
+    pdf.data_extracao = data_extracao
     pdf.add_page()
 
     y_inicio = pdf.get_y()

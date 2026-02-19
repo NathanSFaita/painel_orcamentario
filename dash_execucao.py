@@ -105,7 +105,7 @@ def registrar_callbacks_execucao(app):
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica",
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
-            "fonte": "ds_fonte", "despesa": "despesa"
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
         }
         
         opcoes_dict = {}
@@ -122,20 +122,20 @@ def registrar_callbacks_execucao(app):
 
     # 2. Atualiza os Dropdowns com base no Store e no Search Value (Injeta "Selecionar Todos")
     @app.callback(
-        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
         Input("store_opcoes_exe", "data"),
-        [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]]
+        [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]]
     )
-    def atualiza_dropdowns_exe(opcoes_base, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp):
+    def atualiza_dropdowns_exe(opcoes_base, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc):
         if not opcoes_base:
-            return [[{"label": "Todos", "value": "Todos"}] for _ in range(8)]
+            return [[{"label": "Todos", "value": "Todos"}] for _ in range(9)]
         
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         
         # Lista de search values na mesma ordem dos outputs
-        search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp]
-        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]
+        search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc]
+        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]
         
         outputs = []
         for i, key in enumerate(keys):
@@ -156,11 +156,11 @@ def registrar_callbacks_execucao(app):
         Input("exe-btn-limpar", "n_clicks"), Input("exe-ano", "value"), Input("exe-mes", "value"),
         Input("exe-orgao", "value"), Input("exe-coordenacao", "value"), Input("exe-acao", "value"), Input("exe-projeto", "value"),
         Input("exe-elemento", "value"), Input("exe-vinculacao", "value"),
-        Input("exe-fonte", "value"), Input("exe-despesa", "value"),
+        Input("exe-fonte", "value"), Input("exe-despesa", "value"), Input("exe-descricao", "value"),
         State("store_filtros", "data"), 
         State("store_opcoes_exe", "data"), prevent_initial_call=True
     )
-    def salva_filtros_exe(n_clicks, ano, mes, orgao, coord, acao, proj, elem, vinc, fonte, desp, store, opcoes_base):
+    def salva_filtros_exe(n_clicks, ano, mes, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -171,7 +171,7 @@ def registrar_callbacks_execucao(app):
             meses = lista_meses("execucao", novo_ano)
             novo_mes = meses[-1] if meses else None
             return {**store, "ano": novo_ano, "mes": novo_mes, "orgao": ["Todos"], "coordenacao": ["Todos"],
-                    "acao": ["Todos"], "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
+                    "acao": ["Todos"], "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
                     "fonte": ["Todos"], "despesa": ["Todos"]}
         
         # Função para expandir "SELECT_ALL"
@@ -201,22 +201,23 @@ def registrar_callbacks_execucao(app):
             "elemento": processar_selecao(elem, "elemento"),
             "vinculacao": processar_selecao(vinc, "vinculacao"),
             "fonte": processar_selecao(fonte, "fonte"),
-            "despesa": processar_selecao(desp, "despesa")
+            "despesa": processar_selecao(desp, "despesa"),
+            "descricao": processar_selecao(desc, "descricao")
         })
         return store
 
     # 2. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output("exe-ano", "value")] + [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        [Output("exe-ano", "value")] + [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
         Input("store_filtros", "data")
     )
     def carrega_ui_exe(store):
-        if not store: return (ano_padrao,) + (["Todos"],)*8
+        if not store: return (ano_padrao,) + (["Todos"],)*9
         return (store.get("ano", ano_padrao),
                 store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
-                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))
+                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]))
 
     # 3. CONTROLE DO MODAL DE COLUNAS
     @app.callback(
@@ -277,7 +278,8 @@ def registrar_callbacks_execucao(app):
             "elemento": "nome_elemento",
             "vinculacao": "vinculacao",
             "fonte": "ds_fonte",
-            "despesa": "despesa"
+            "despesa": "despesa",
+            "descricao": "politicas_para"
         }
 
         for k_store, col_df in mapa_filtros.items():
@@ -310,6 +312,14 @@ def registrar_callbacks_execucao(app):
         # Gera componentes
         cards = monta_cards_resumo(totais, DE_PARA_EXECUCAO)
         pivot = gera_tabela_pivot(df, "execucao")
+
+        # Adiciona colunas calculadas na tabela (Saldo de Dotação e Saldo de Reserva)
+        if not pivot.empty:
+            for col in ["valDisponivel", "valReservadoLiquido", "valEmpenhadoLiquido"]:
+                if col not in pivot.columns: pivot[col] = 0.0
+            
+            pivot["Saldo de Dotação"] = pivot["valDisponivel"] - pivot["valReservadoLiquido"]
+            pivot["Saldo de Reserva"] = pivot["valReservadoLiquido"] - pivot["valEmpenhadoLiquido"]
 
         # Filtra as colunas do DataFrame com base na seleção do usuário
         if cols_selecionadas:
@@ -364,11 +374,18 @@ def registrar_callbacks_execucao(app):
         if df.empty:
             return no_update
 
+        # Extrai data de extração
+        data_ext = "-"
+        if "data_hora_extracao" in df.columns:
+            datas = df["data_hora_extracao"].dropna().unique()
+            if len(datas) > 0:
+                data_ext = str(datas[0])
+
         # Replicar filtros
         mapa_filtros = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica", 
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
-            "fonte": "ds_fonte", "despesa": "despesa"
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
         }
         for k_store, col_df in mapa_filtros.items():
             vals = store.get(k_store, ["Todos"])
@@ -379,18 +396,27 @@ def registrar_callbacks_execucao(app):
         cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c != "Saldo de Dotação"]
         totais = {c: df[c].sum() for c in cols_numericas}
         
-        orcado = totais.get("valOrcadoAtualizado", 0)
+        disponivel = totais.get("valDisponivel", 0)
+        reservado = totais.get("valReservadoLiquido", 0)
         empenhado = totais.get("valEmpenhadoLiquido", 0)
-        totais["Saldo de Dotação"] = orcado - empenhado
+        totais["Saldo de Dotação"] = disponivel - reservado
+        totais["Saldo de Reserva"] = reservado - empenhado
 
         pivot = gera_tabela_pivot(df, "execucao")
+
+        # Adiciona colunas calculadas na tabela do PDF
+        if not pivot.empty:
+            for col in ["valDisponivel", "valReservadoLiquido", "valEmpenhadoLiquido"]:
+                if col not in pivot.columns: pivot[col] = 0.0
+            pivot["Saldo de Dotação"] = pivot["valDisponivel"] - pivot["valReservadoLiquido"]
+            pivot["Saldo de Reserva"] = pivot["valReservadoLiquido"] - pivot["valEmpenhadoLiquido"]
 
         # Filtra colunas para o PDF também
         if cols_selecionadas:
             cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
             pivot = pivot[cols_to_keep]
         
-        pdf_bytes = criar_relatorio_execucao_pdf(store, totais, pivot)
+        pdf_bytes = criar_relatorio_execucao_pdf(store, totais, pivot, data_ext)
         return dcc.send_bytes(pdf_bytes, "relatorio_execucao.pdf")
 
     # 5. GERA E FAZ DOWNLOAD DO EXCEL

@@ -120,6 +120,7 @@ def registrar_callbacks_empenhos(app):
             "acao": opts_todos("acao_programatica"), "projeto": opts_todos("codProjetoAtividade"),
             "elemento": opts_todos("nome_elemento"), "vinculacao": opts_todos("codVinculacaoRecurso"),
             "fonte": opts_todos("txDescricaoFonteRecurso"), "despesa": opts_todos("codDespesa"),
+            "descricao": opts_todos("politicas_para"),
             "filtro-empenho": opts("codEmpenho"), "filtro-processo": opts("codProcesso"),
             "filtro-credor": opts("txtRazaoSocial"), "filtro-objeto": opts("anexo_descricaoAnexo")
         }
@@ -127,17 +128,17 @@ def registrar_callbacks_empenhos(app):
     # 2. Atualiza Dropdowns com Search Value
     @app.callback(
         [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
-                                                     "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
+                                                     "vinculacao", "fonte", "despesa", "descricao", "filtro-empenho", "filtro-processo"]] + 
         [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options")],
         Input("store_opcoes_emp", "data"),
         [Input(f"emp-{col}", "search_value") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
-                                                     "vinculacao", "fonte", "despesa", "filtro-empenho", "filtro-processo"]] + 
+                                                     "vinculacao", "fonte", "despesa", "descricao", "filtro-empenho", "filtro-processo"]] + 
         [Input("emp-filtro-credor", "search_value"), Input("emp-filtro-objeto", "search_value")]
     )
     def atualiza_dropdowns_emp(opcoes_base, *search_values):
-        if not opcoes_base: return [[]] * 12
+        if not opcoes_base: return [[]] * 13
         
-        keys = ["orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa", 
+        keys = ["orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa", "descricao",
                 "filtro-empenho", "filtro-processo", "filtro-credor", "filtro-objeto"]
         
         outputs = []
@@ -157,18 +158,18 @@ def registrar_callbacks_empenhos(app):
         Input("emp-orgao", "value"), Input("emp-coordenacao", "value"),
         Input("emp-acao", "value"), Input("emp-projeto", "value"),
         Input("emp-elemento", "value"), Input("emp-vinculacao", "value"),
-        Input("emp-fonte", "value"), Input("emp-despesa", "value"),
+        Input("emp-fonte", "value"), Input("emp-despesa", "value"), Input("emp-descricao", "value"),
         State("store_filtros", "data"), 
         State("store_opcoes_emp", "data"), prevent_initial_call=True
     )
-    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, store, opcoes_base):
+    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
         
         if "emp-btn-limpar" in trigger_id:
             return {**store, "ano": ano_padrao, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
-                    "projeto": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], "fonte": ["Todos"], "despesa": ["Todos"]}
+                    "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], "fonte": ["Todos"], "despesa": ["Todos"]}
         
         def processar_selecao(selecao, key):
             if not selecao: return ["Todos"]
@@ -194,22 +195,23 @@ def registrar_callbacks_empenhos(app):
             "elemento": processar_selecao(elem, "elemento"),
             "vinculacao": processar_selecao(vinc, "vinculacao"),
             "fonte": processar_selecao(fonte, "fonte"),
-            "despesa": processar_selecao(desp, "despesa")
+            "despesa": processar_selecao(desp, "despesa"),
+            "descricao": processar_selecao(desc, "descricao")
         })
         return store
 
     # 3. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output("emp-ano", "value")] + [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa"]],
+        [Output("emp-ano", "value")] + [Output(f"emp-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
         Input("store_filtros", "data")
     )
     def sync_ui_emp(store):
-        if not store: return (ano_padrao,) + (["Todos"],)*8
+        if not store: return (ano_padrao,) + (["Todos"],)*9
         return (store.get("ano", ano_padrao),
                 store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
-                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]))
+                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]))
 
     # 4. CONTROLE DO MODAL DE COLUNAS
     @app.callback(
@@ -265,7 +267,7 @@ def registrar_callbacks_empenhos(app):
         # Aplica Filtros Globais
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
-                "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa"}
+                "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para"}
         
         for k_store, col_df in mapa.items():
             vals = store.get(k_store, ["Todos"])
@@ -365,7 +367,7 @@ def registrar_callbacks_empenhos(app):
 
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
-                "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa"}
+                "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para"}
         
         for k_store, col_df in mapa.items():
             vals = store.get(k_store, ["Todos"])
