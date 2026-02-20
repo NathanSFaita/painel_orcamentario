@@ -41,9 +41,9 @@ def main():
 
     URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
     
-    ano = "2025"
-    mes = "12"
-    URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2025/basedadosexecucao_1225.xlsx"
+    # ano = "2025"
+    # mes = "12"
+    # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2025/basedadosexecucao_1225.xlsx"
     orgaos_list = [8, 34, 78, 90]
 
     orcamento = pd.read_excel(URL_ORC)
