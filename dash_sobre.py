@@ -45,8 +45,8 @@ def layout_sobre():
         
         dbc.Row([
             dbc.Col([
-                dbc.Button("⬅️ Voltar para Execução", href="/", color="secondary", className="mb-4 me-2"),
-                dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="mb-4"),
+                dbc.Button("⬅️ Voltar para Execução", href="/", className="mb-4 me-2", style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"}),
+                dbc.Button("Ir para Empenhos ➡️", href="/empenhos", className="mb-4", style={"backgroundColor": "#0d6efd", "borderColor": "#0d6efd", "color": "white"}),
             ], width=12, className="d-flex justify-content-center gap-2")
         ]),
 
@@ -56,7 +56,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Sobre este Painel", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-sobre", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-sobre", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -85,7 +85,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Sobre o Orçamento", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-orcamento", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-orcamento", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -208,7 +208,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Dotação Orçamentária (Códigos)", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-dotacao", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-dotacao", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -261,7 +261,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Descrição dos códigos e siglas", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-codigos", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-codigos", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -301,7 +301,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Glossário de Termos Orçamentários", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-glossario", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-glossario", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -317,7 +317,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Dicas de Utilização do Painel", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-dicas", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-dicas", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(
@@ -336,7 +336,7 @@ def layout_sobre():
                     html.P([
                         "2. Para encontrar o custo com os ",
                         html.B("Auxílios Financeiros"),
-                        ", (Transcidadania, Auxílio Aluguel e Auxílio Ampara), utilize o código ",
+                        " (Transcidadania, Auxílio Aluguel e Auxílio Ampara), utilize o código ",
                         html.B("33904800"),
                         " no filtro ",
                         html.B("Despesa (Código)"),
@@ -356,7 +356,7 @@ def layout_sobre():
                         " Portanto, ao selecionar filtros em uma tela, os dados da outra tela serão automaticamente "\
                         "filtrados de acordo. Por exemplo, se você selecionar a coordenação 'CPPI' "\
                         "na tela de execução, os dados de empenhos serão automaticamente filtrados para "\
-                        "mostrar apenas os empenhos relacionados a esta coordenação."
+                        "mostrar apenas os empenhos relacionados a Idosos."
                     ], className="card-text"),
                 ]),
                 id="collapse-dicas", is_open=True
@@ -368,7 +368,7 @@ def layout_sobre():
             dbc.CardHeader(
                 html.Div([
                     html.H5("Fontes e Referências", className="m-0"),
-                    dbc.Button("➖/➕", id="btn-collapse-fontes", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                    dbc.Button("➖/➕", id="btn-collapse-fontes", size="sm", className="text-decoration-none ms-2", n_clicks=1, style={"backgroundColor": "transparent", "border": "none", "color": "#0d6efd"})
                 ], className="d-flex align-items-center")
             ),
             dbc.Collapse(

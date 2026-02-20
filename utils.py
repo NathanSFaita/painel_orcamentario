@@ -159,18 +159,18 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
         cards.append(criar_quebra())
 
         cards.append(criar_card("Reservado", dados_totais.get("valReservadoLiquido", 0), 
-                                cor_fundo="#dabd18e2", cor_texto="#FFFFFF", descricao=descrição_cards["Reservado"]))
+                                cor_fundo="#d4c11b", cor_texto="#FFFFFF", descricao=descrição_cards["Reservado"]))
         cards.append(criar_card("Saldo de Reserva", dados_totais.get("Saldo de Reserva", 0), 
                                 cor_fundo="#af865a", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Reserva"]))
         cards.append(criar_card("Empenhado", dados_totais.get("valEmpenhadoLiquido", 0), 
-                                cor_fundo="#fd7e14", cor_texto="#FFFFFF", descricao=descrição_cards["Empenhado"]))
+                                cor_fundo="#ff7f0e", cor_texto="#FFFFFF", descricao=descrição_cards["Empenhado"]))
         cards.append(criar_card("Liquidado", dados_totais.get("valLiquidado", 0), 
-                                cor_fundo="#b82e2e", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
+                                cor_fundo="#b22222", cor_texto="#FFFFFF", descricao=descrição_cards["Liquidado"]))
         cards.append(criar_card("Pago", dados_totais.get("valPagoExercicio", 0), 
                                 cor_fundo="#871987", cor_texto="#FFFFFF", descricao=descrição_cards["Pago"]))        
         
         cards.append(criar_card("Saldo de Dotação", dados_totais.get("Saldo de Dotação", 0), 
-                                cor_fundo="#198754", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Dotação"]))
+                                cor_fundo="#03bb85", cor_texto="#FFFFFF", descricao=descrição_cards["Saldo de Dotação"]))
         
     # Verifica contexto Empenhos
     elif "valEmpenhadoLiquido" in mapa_colunas:

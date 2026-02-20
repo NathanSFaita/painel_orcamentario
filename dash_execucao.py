@@ -21,14 +21,22 @@ def layout_execucao():
         # Store para guardar as opções dos filtros e evitar recargas desnecessárias
         dcc.Store(id="store_opcoes_exe", storage_type="memory"),
         
+        dbc.Row([
+            dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", className="w-100 mt-4", 
+                                style={"whiteSpace": "normal", "backgroundColor": "#0d6efd", "borderColor": "#0d6efd", "color": "white"})], md=2),
+            dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", className="w-100 mt-4", 
+                                style={"whiteSpace": "normal", "backgroundColor": "#0dcaf0", "borderColor": "#0dcaf0", "color": "black"})], md=2),
+            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", className="w-100 mt-4", 
+                                style={"whiteSpace": "normal", "backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=2),
+        ], className="mb-4", justify="center"),
+        
+
         layout_filtros_padrao("exe"),
         
         dbc.Row([
             # dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
-            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", color="warning", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
-            dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", color="primary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
-            dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", color="info", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=2),
-            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", color="secondary", className="w-100 mt-4", style={"whiteSpace": "normal"})], md=1),
+            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", className="w-100 mt-4", style={"whiteSpace": "normal", "backgroundColor": "#ffc107", "borderColor": "#ffc107", "color": "black"})], md=2),
+            
         ], className="mb-4", justify="center"),
 
         # MODAL DE SELEÇÃO DE COLUNAS
@@ -36,8 +44,10 @@ def layout_execucao():
             dbc.ModalHeader(dbc.ModalTitle("Selecionar Colunas para Exibição")),
             dbc.ModalBody([
                 html.Div([
-                    dbc.Button("✅ Selecionar Tudo", id="exe-btn-sel-todos", size="sm", color="primary", outline=True, className="me-2"),
-                    dbc.Button("❌ Desmarcar Tudo", id="exe-btn-des-todos", size="sm", color="secondary", outline=True),
+                    dbc.Button("✅ Selecionar Tudo", id="exe-btn-sel-todos", size="sm", className="me-2", 
+                               style={"backgroundColor": "transparent", "borderColor": "#0d6efd", "color": "#0d6efd"}),
+                    dbc.Button("❌ Desmarcar Tudo", id="exe-btn-des-todos", size="sm", 
+                               style={"backgroundColor": "transparent", "borderColor": "#6c757d", "color": "#6c757d"}),
                 ], className="mb-3 d-flex justify-content-center"),
                 dbc.Checklist(
                     id="exe-checklist-colunas",
@@ -46,7 +56,8 @@ def layout_execucao():
                     switch=True,
                 )
             ]),
-            dbc.ModalFooter(dbc.Button("Fechar", id="exe-btn-fechar-modal", className="ms-auto", n_clicks=0))
+            dbc.ModalFooter(dbc.Button("Fechar", id="exe-btn-fechar-modal", className="ms-auto", n_clicks=0, 
+                                       style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"}))
         ], id="exe-modal-colunas", is_open=False),
 
         html.H5("Detalhamento", className="fw-bold"),
@@ -59,8 +70,10 @@ def layout_execucao():
         ),
         dcc.Download(id="exe-download-xlsx"),
         dcc.Download(id="exe-download-pdf"),
-        dbc.Button("📥 Download Excel", id="exe-btn-download", color="success", className="mt-3"),
-        dbc.Button("📄 Download PDF", id="exe-btn-download-pdf", color="danger", className="mt-3", style={"marginLeft": "10px"}),
+        dbc.Button("📥 Download Excel", id="exe-btn-download", className="mt-3", 
+                   style={"backgroundColor": "#198754", "borderColor": "#198754", "color": "white"}),
+        dbc.Button("📄 Download PDF", id="exe-btn-download-pdf", className="mt-3", 
+                    style={"marginLeft": "10px", "backgroundColor": "#dc3545", "borderColor": "#dc3545", "color": "white"}),
         html.Hr(),
         html.Div(id="exe-info-atualizacao")
         ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})

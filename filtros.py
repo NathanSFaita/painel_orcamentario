@@ -39,8 +39,7 @@ def layout_filtros_padrao(prefixo):
             "🔽 Filtros de Pesquisa (Clique para expandir/recolher)",
             id=f"{prefixo}-btn-toggle-filtros",
             className="mb-3 w-100",
-            color="light",
-            style={"textAlign": "left", "fontWeight": "bold", "border": "1px solid #ddd", "color": "#555"}
+            style={"textAlign": "left", "fontWeight": "bold", "border": "1px solid #ddd", "color": "#555", "backgroundColor": "#f8f9fa"}
         ),
         dbc.Collapse(
             id=f"{prefixo}-collapse-filtros", 
