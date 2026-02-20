@@ -316,6 +316,57 @@ def layout_sobre():
         dbc.Card([
             dbc.CardHeader(
                 html.Div([
+                    html.H5("Dicas de Utilização do Painel", className="m-0"),
+                    dbc.Button("➖/➕", id="btn-collapse-dicas", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
+                ], className="d-flex align-items-center")
+            ),
+            dbc.Collapse(
+                dbc.CardBody([
+                    html.P([
+                        "1. Para encontrar o custo com ", 
+                        html.B("Parcerias"), 
+                        ", utilize o código ",
+                        html.B("33503900"),
+                        " no filtro ",
+                        html.B("Despesa (Código)"),
+                        ". Ou então, você pode pesquisar em ",
+                        html.B("Elemento de Despesa"),
+                        " por 'Contratação PJ sem fins lucrativos'."
+                    ], className="card-text"),
+                    html.P([
+                        "2. Para encontrar o custo com os ",
+                        html.B("Auxílios Financeiros"),
+                        ", (Transcidadania, Auxílio Aluguel e Auxílio Ampara), utilize o código ",
+                        html.B("33904800"),
+                        " no filtro ",
+                        html.B("Despesa (Código)"),
+                        ". Ou então, você pode pesquisar em ",
+                        html.B("Elemento de Despesa"),
+                        " por 'Outros Auxílios Financeiros - Pessoas Físicas'."
+                    ], className="card-text"),
+                    html.P([
+                        "3. Utilize o filtro ",
+                        html.B("Fonte"),
+                        " para encontrar os recursos do Orçamento Cidadão, Emendas Parlamentares e Concessionárias (água, luz e telefone)."
+                        ], className="card-text"
+                    ),
+                    html.P([
+                        "4. Os filtros de execução e de empenhos estão ",
+                        html.B("conectados."),
+                        " Portanto, ao selecionar filtros em uma tela, os dados da outra tela serão automaticamente "\
+                        "filtrados de acordo. Por exemplo, se você selecionar a coordenação 'CPPI' "\
+                        "na tela de execução, os dados de empenhos serão automaticamente filtrados para "\
+                        "mostrar apenas os empenhos relacionados a esta coordenação."
+                    ], className="card-text"),
+                ]),
+                id="collapse-dicas", is_open=True
+            )
+        ], className="shadow-sm mb-5"),
+
+
+        dbc.Card([
+            dbc.CardHeader(
+                html.Div([
                     html.H5("Fontes e Referências", className="m-0"),
                     dbc.Button("➖/➕", id="btn-collapse-fontes", color="link", size="sm", className="text-decoration-none ms-2", n_clicks=1)
                 ], className="d-flex align-items-center")
@@ -421,6 +472,16 @@ def registrar_callbacks_sobre(app):
         State("collapse-fontes", "is_open"),
     )
     def toggle_fontes(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+    
+    @app.callback(
+        Output("collapse-dicas", "is_open"),
+        Input("btn-collapse-dicas", "n_clicks"),
+        State("collapse-dicas", "is_open"),
+    )
+    def toggle_dicas(n, is_open):
         if n:
             return not is_open
         return is_open
