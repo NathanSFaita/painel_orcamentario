@@ -30,7 +30,7 @@ def layout_empenhos():
             dbc.Col([dbc.Button("🛠️ Colunas", id="emp-btn-colunas", className="w-100 mt-4", 
                                 style={"backgroundColor": "#0dcaf0", "borderColor": "#0dcaf0", "color": "black"})], md=2),
             dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", className="w-100 mt-4", 
-                                style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=1),
+                                style={"backgroundColor": "#722f37", "borderColor": "#722f37", "color": "white"})], md=2),
         ], className="mb-4", justify="center"),
         
 
@@ -79,6 +79,17 @@ def layout_empenhos():
                 {
                     'if': {'column_id': 'codProcesso'},
                     'whiteSpace': 'nowrap'
+                }
+            ],
+            style_data_conditional=[
+                {
+                    'if': {'filter_query': '{valEmpenhadoLiquido} > 1000000'},
+                    'backgroundColor': '#ffdddd', # Vermelho claro
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{valEmpenhadoLiquido} > 100000 && {valEmpenhadoLiquido} <= 1000000'},
+                    'backgroundColor': '#fff3cd', # Amarelo claro
                 }
             ],
             page_size=25, sort_action="native", #filter_action="native"
