@@ -277,9 +277,9 @@ def registrar_callbacks_empenhos(app):
             card_atualizacao = gera_card_atualizacao("-")
             return card_atualizacao, html.Div("Sem dados."), [], []
 
-        # Formata data para remover hora
+        # Converte para datetime para permitir ordenação e filtragem corretas
         if "datEmpenho" in df.columns:
-            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce').dt.strftime('%d/%m/%Y')
+            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce')
 
         # Aplica Filtros Globais
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
@@ -310,11 +310,9 @@ def registrar_callbacks_empenhos(app):
 
         # Filtro de Data (Range)
         if store.get("data_inicio") and store.get("data_fim") and "datEmpenho" in df.columns:
-            # Converte a coluna de data (DD/MM/YYYY) para datetime
-            df["dt_temp"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors="coerce")
             start = pd.to_datetime(store["data_inicio"])
             end = pd.to_datetime(store["data_fim"])
-            df = df[(df["dt_temp"] >= start) & (df["dt_temp"] <= end)]
+            df = df[(df["datEmpenho"] >= start) & (df["datEmpenho"] <= end)]
 
         # Filtros Locais (Empenho/Processo)
         if f_empenho: df = df[df["codEmpenho"].isin(expandir_local(f_empenho, "filtro-empenho"))]
@@ -338,6 +336,11 @@ def registrar_callbacks_empenhos(app):
         # 2. Tabela
         pivot = gera_tabela_pivot(df, "empenhos")
         
+        # Ordena por Data do Empenho (Decrescente) e formata para exibição
+        if "datEmpenho" in pivot.columns:
+            pivot = pivot.sort_values("datEmpenho", ascending=False)
+            pivot["datEmpenho"] = pivot["datEmpenho"].dt.strftime('%d/%m/%Y')
+
         # Filtra as colunas do DataFrame com base na seleção do usuário
         if cols_selecionadas:
             cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
