@@ -29,7 +29,7 @@ def layout_empenhos():
                                 style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="emp-btn-colunas", className="w-100 mt-4", 
                                 style={"backgroundColor": "#0dcaf0", "borderColor": "#0dcaf0", "color": "black"})], md=2),
-            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", className="w-100 mt-4", 
+            dbc.Col([dbc.Button("ℹ️ Saiba Mais", href="/sobre", className="w-100 mt-4", 
                                 style={"backgroundColor": "#722f37", "borderColor": "#722f37", "color": "white"})], md=2),
         ], className="mb-4", justify="center"),
         

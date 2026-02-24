@@ -26,7 +26,7 @@ def layout_execucao():
                                 style={"whiteSpace": "normal", "backgroundColor": "#0d6efd", "borderColor": "#0d6efd", "color": "white"})], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", className="w-100 mt-4", 
                                 style={"whiteSpace": "normal", "backgroundColor": "#0dcaf0", "borderColor": "#0dcaf0", "color": "black"})], md=2),
-            dbc.Col([dbc.Button("ℹ️ Sobre", href="/sobre", className="w-100 mt-4", 
+            dbc.Col([dbc.Button("ℹ️ Saiba Mais", href="/sobre", className="w-100 mt-4", 
                                 style={"whiteSpace": "normal", "backgroundColor": "#722f37", "borderColor": "#722f37", "color": "white"})], md=2),
         ], className="mb-4", justify="center"),
         
