@@ -318,6 +318,10 @@ def registrar_callbacks_execucao(app):
             if "Todos" not in vals and col_df in df.columns:
                 df = df[df[col_df].isin(vals)]
 
+        # Ajuste do Valor Congelado (Congelado Líquido = Congelado - Descongelado)
+        if "valCongelado" in df.columns and "valDescongelado" in df.columns:
+            df["valCongelado"] = df["valCongelado"].fillna(0) - df["valDescongelado"].fillna(0)
+
         # Cálculo de Totais
         # Soma apenas as colunas numéricas que existem no DataFrame
         cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c != "Saldo de Dotação"]
@@ -422,6 +426,10 @@ def registrar_callbacks_execucao(app):
             vals = store.get(k_store, ["Todos"])
             if "Todos" not in vals and col_df in df.columns:
                 df = df[df[col_df].isin(vals)]
+
+        # Ajuste do Valor Congelado (Congelado Líquido = Congelado - Descongelado)
+        if "valCongelado" in df.columns and "valDescongelado" in df.columns:
+            df["valCongelado"] = df["valCongelado"].fillna(0) - df["valDescongelado"].fillna(0)
 
         # Calcular Totais
         cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c != "Saldo de Dotação"]
