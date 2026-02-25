@@ -150,30 +150,60 @@ def registrar_callbacks_execucao(app):
     # 2. Atualiza os Dropdowns com base no Store e no Search Value (Injeta "Selecionar Todos")
     @app.callback(
         [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
-        Input("store_opcoes_exe", "data"),
+        Input("store_filtros", "data"),
         [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]]
     )
-    def atualiza_dropdowns_exe(opcoes_base, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc):
-        if not opcoes_base:
+    def atualiza_dropdowns_exe(store, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc):
+        if not store:
             return [[{"label": "Todos", "value": "Todos"}] for _ in range(9)]
         
-        ctx = callback_context
-        trigger_id = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
+        ano = store.get("ano")
+        mes = store.get("mes")
+        
+        df = carrega_base("execucao", ano, mes)
+        if df.empty:
+             return [[{"label": "Todos", "value": "Todos"}] for _ in range(9)]
+
+        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]
+        mapa_cols = {
+            "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica",
+            "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
+        }
         
         # Lista de search values na mesma ordem dos outputs
         search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc]
-        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]
         
         outputs = []
-        for i, key in enumerate(keys):
-            base = opcoes_base.get(key, [])
-            search = search_values[i]
+        for i, key_target in enumerate(keys):
+            # Filtra o DF com base em todos os filtros EXCETO o atual
+            df_filtered = df.copy()
+            for key_filter in keys:
+                if key_filter == key_target:
+                    continue
+                
+                vals = store.get(key_filter, ["Todos"])
+                col_name = mapa_cols[key_filter]
+                
+                if "Todos" not in vals and col_name in df_filtered.columns:
+                    df_filtered = df_filtered[df_filtered[col_name].isin(vals)]
             
-            if search:
-                # Adiciona opção especial no topo
-                outputs.append([{"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"}] + base)
+            # Gera opções a partir do DF filtrado
+            col_target = mapa_cols[key_target]
+            options = []
+            if col_target in df_filtered.columns:
+                unique_vals = sorted(df_filtered[col_target].dropna().unique())
+                options = [{"label": "Todos", "value": "Todos"}] + [{"label": str(v), "value": v} for v in unique_vals]
             else:
-                outputs.append(base)
+                options = [{"label": "Todos", "value": "Todos"}]
+            
+            # Filtro de busca (search_value)
+            search = search_values[i]
+            if search:
+                options = [opt for opt in options if search.lower() in str(opt["label"]).lower()]
+                options.insert(0, {"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"})
+            
+            outputs.append(options)
         
         return outputs
 

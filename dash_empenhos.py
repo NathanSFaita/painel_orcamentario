@@ -148,25 +148,82 @@ def registrar_callbacks_empenhos(app):
         [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
                                                      "vinculacao", "fonte", "despesa", "descricao", "filtro-empenho", "filtro-processo"]] + 
         [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options")],
-        Input("store_opcoes_emp", "data"),
+        Input("store_filtros", "data"),
+        Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
+        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
         [Input(f"emp-{col}", "search_value") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
                                                      "vinculacao", "fonte", "despesa", "descricao", "filtro-empenho", "filtro-processo"]] + 
         [Input("emp-filtro-credor", "search_value"), Input("emp-filtro-objeto", "search_value")]
     )
-    def atualiza_dropdowns_emp(opcoes_base, *search_values):
-        if not opcoes_base: return [[]] * 13
+    def atualiza_dropdowns_emp(store, f_empenho, f_processo, f_credor, f_objeto, *search_values):
+        if not store: return [[]] * 13
+        
+        ano = store.get("ano")
+        df = carrega_base("empenhos", ano, None)
+        if df.empty: return [[]] * 13
+
+        # Converte data se necessário (para filtro de data)
+        if "datEmpenho" in df.columns:
+            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce')
         
         keys = ["orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa", "descricao",
                 "filtro-empenho", "filtro-processo", "filtro-credor", "filtro-objeto"]
         
+        mapa_cols = {
+            "orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
+            "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
+            "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para",
+            "filtro-empenho": "codEmpenho", "filtro-processo": "codProcesso",
+            "filtro-credor": "txtRazaoSocial", "filtro-objeto": "anexo_descricaoAnexo"
+        }
+
+        # Dicionário com os valores atuais de cada filtro (Global + Local)
+        valores_atuais = {
+            "filtro-empenho": f_empenho, "filtro-processo": f_processo,
+            "filtro-credor": f_credor, "filtro-objeto": f_objeto
+        }
+        # Adiciona os globais do store
+        for k in keys[:9]: # As 9 primeiras chaves são globais
+            valores_atuais[k] = store.get(k, ["Todos"])
+
         outputs = []
         for i, key in enumerate(keys):
-            base = opcoes_base.get(key, [])
+            df_filtered = df.copy()
+            
+            # 1. Aplica Filtro de Data (sempre)
+            if store.get("data_inicio") and store.get("data_fim") and "datEmpenho" in df_filtered.columns:
+                start = pd.to_datetime(store["data_inicio"])
+                end = pd.to_datetime(store["data_fim"])
+                df_filtered = df_filtered[(df_filtered["datEmpenho"] >= start) & (df_filtered["datEmpenho"] <= end)]
+
+            # 2. Aplica todos os outros filtros EXCETO o atual
+            for key_filter in keys:
+                if key_filter == key: continue
+                
+                vals = valores_atuais.get(key_filter)
+                col_name = mapa_cols[key_filter]
+                
+                if vals and "Todos" not in vals and col_name in df_filtered.columns:
+                     df_filtered = df_filtered[df_filtered[col_name].isin(vals)]
+
+            # 3. Gera opções
+            col_target = mapa_cols[key]
+            options = []
+            if col_target in df_filtered.columns:
+                unique_vals = sorted(df_filtered[col_target].dropna().unique())
+                # Para filtros locais, não usamos "Todos" explicitamente no value, apenas lista vazia limpa
+                # Mas para manter padrão visual, adicionamos "Todos"
+                options = [{"label": "Todos", "value": "Todos"}] + [{"label": str(v), "value": v} for v in unique_vals]
+            else:
+                options = [{"label": "Todos", "value": "Todos"}]
+
             search = search_values[i]
             if search:
-                outputs.append([{"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"}] + base)
-            else:
-                outputs.append(base)
+                options = [opt for opt in options if search.lower() in str(opt["label"]).lower()]
+                options.insert(0, {"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"})
+            
+            outputs.append(options)
+
         return outputs
 
     # 3. UI -> STORE (Salva alterações e aplica lógica do "Todos" e "Select All")
