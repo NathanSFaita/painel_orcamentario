@@ -23,6 +23,8 @@ def layout_empenhos():
         html.Div(id="emp-cards-container", className="mb-4"),
         # Store para opções de empenhos
         dcc.Store(id="store_opcoes_emp", storage_type="memory"),
+        # Store para gerenciar estado de loading do botão de download
+        dcc.Store(id="trigger-pdf-empenho"),
         
         dbc.Row([
             dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", className="w-100 mt-4", 
@@ -206,27 +208,37 @@ def registrar_callbacks_empenhos(app):
                 if vals and "Todos" not in vals and col_name in df_filtered.columns:
                      df_filtered = df_filtered[df_filtered[col_name].isin(vals)]
 
-            # 3. Gera opções
+            # 3. Gera opções, garantindo que a seleção atual seja mantida
             col_target = mapa_cols[key]
             options = []
-            if col_target in df_filtered.columns:
-                unique_vals = sorted(df_filtered[col_target].dropna().unique())
-                # Para filtros locais, não usamos "Todos" explicitamente no value, apenas lista vazia limpa
-                # Mas para manter padrão visual, adicionamos "Todos"
-                options = [{"label": "Todos", "value": "Todos"}] + [{"label": str(v), "value": v} for v in unique_vals]
-            else:
-                options = [{"label": "Todos", "value": "Todos"}]
+            
+            # Pega a seleção atual do store para este filtro
+            current_selection = valores_atuais.get(key, ["Todos"])
+            if current_selection is None:
+                current_selection = [] # Garante que é uma lista para evitar TypeError
 
+            if col_target in df_filtered.columns:
+                unique_vals_from_filtered_df = set(df_filtered[col_target].dropna().unique())
+                
+                # Combina a seleção atual com as opções possíveis para não perder o valor
+                if "Todos" in current_selection:
+                    final_vals = unique_vals_from_filtered_df
+                else:
+                    final_vals = set(current_selection).union(unique_vals_from_filtered_df)
+                
+                options = [{"label": str(v), "value": v} for v in sorted(list(final_vals))]
+
+            # Adiciona "Todos" no início
+            options.insert(0, {"label": "Todos", "value": "Todos"})
             search = search_values[i]
             if search:
                 options = [opt for opt in options if search.lower() in str(opt["label"]).lower()]
-                options.insert(0, {"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"})
             
             outputs.append(options)
 
         return outputs
 
-    # 3. UI -> STORE (Salva alterações e aplica lógica do "Todos" e "Select All")
+    # 3. UI -> STORE (Salva alterações e aplica lógica do "Todos")
     @app.callback(
         Output("store_filtros", "data", allow_duplicate=True),
         Input("emp-btn-limpar", "n_clicks"), Input("emp-ano", "value"),
@@ -235,10 +247,10 @@ def registrar_callbacks_empenhos(app):
         Input("emp-elemento", "value"), Input("emp-vinculacao", "value"),
         Input("emp-fonte", "value"), Input("emp-despesa", "value"), Input("emp-descricao", "value"),
         Input("emp-date-picker", "start_date"), Input("emp-date-picker", "end_date"),
-        State("store_filtros", "data"), 
-        State("store_opcoes_emp", "data"), prevent_initial_call=True
+        State("store_filtros", "data"), prevent_initial_call=True
     )
-    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, start_date, end_date, store, opcoes_base):
+    def update_store_emp(n_limpar, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, start_date, end_date, store):
+        if not ano: return no_update
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -247,33 +259,18 @@ def registrar_callbacks_empenhos(app):
             return {**store, "ano": ano_padrao, "orgao": ["Todos"], "coordenacao": ["Todos"], "acao": ["Todos"],
                     "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"], 
                     "fonte": ["Todos"], "despesa": ["Todos"], "data_inicio": None, "data_fim": None}
-        
-        def processar_selecao(selecao, key):
-            if not selecao: return ["Todos"]
-            nova_selecao = []
-            expandiu = False
-            for item in selecao:
-                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
-                    termo = item.split("SELECT_ALL:")[1].lower()
-                    if opcoes_base and key in opcoes_base:
-                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower() and opt["value"] != "Todos"]
-                        nova_selecao.extend(matches)
-                    expandiu = True
-                else:
-                    nova_selecao.append(item)
-            return tratar_selecao_todos(nova_selecao, store.get(key)) if not expandiu else nova_selecao
 
         store.update({
             "ano": ano,
-            "orgao": processar_selecao(orgao, "orgao"),
-            "coordenacao": processar_selecao(coord, "coordenacao"),
-            "acao": processar_selecao(acao, "acao"),
-            "projeto": processar_selecao(proj, "projeto"),
-            "elemento": processar_selecao(elem, "elemento"),
-            "vinculacao": processar_selecao(vinc, "vinculacao"),
-            "fonte": processar_selecao(fonte, "fonte"),
-            "despesa": processar_selecao(desp, "despesa"),
-            "descricao": processar_selecao(desc, "descricao"),
+            "orgao": tratar_selecao_todos(orgao, store.get("orgao")),
+            "coordenacao": tratar_selecao_todos(coord, store.get("coordenacao")),
+            "acao": tratar_selecao_todos(acao, store.get("acao")),
+            "projeto": tratar_selecao_todos(proj, store.get("projeto")),
+            "elemento": tratar_selecao_todos(elem, store.get("elemento")),
+            "vinculacao": tratar_selecao_todos(vinc, store.get("vinculacao")),
+            "fonte": tratar_selecao_todos(fonte, store.get("fonte")),
+            "despesa": tratar_selecao_todos(desp, store.get("despesa")),
+            "descricao": tratar_selecao_todos(desc, store.get("descricao")),
             "data_inicio": start_date,
             "data_fim": end_date
         })
@@ -332,10 +329,9 @@ def registrar_callbacks_empenhos(app):
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
         Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
-        Input("emp-checklist-colunas", "value"),
-        State("store_opcoes_emp", "data")
+        Input("emp-checklist-colunas", "value")
     )
-    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas, opcoes_base):
+    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
         if not store or not store.get("ano"):
             return (no_update,) * 4
         
@@ -362,19 +358,6 @@ def registrar_callbacks_empenhos(app):
                 else:
                     df = df[df[col_df].isin(vals)]
         
-        # Função auxiliar para expandir filtros locais
-        def expandir_local(selecao, key):
-            if not selecao: return []
-            nova = []
-            for item in selecao:
-                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
-                    termo = item.split("SELECT_ALL:")[1].lower()
-                    if opcoes_base and key in opcoes_base:
-                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower()]
-                        nova.extend(matches)
-                else:
-                    nova.append(item)
-            return nova
 
         # Filtro de Data (Range)
         if store.get("data_inicio") and store.get("data_fim") and "datEmpenho" in df.columns:
@@ -383,10 +366,10 @@ def registrar_callbacks_empenhos(app):
             df = df[(df["datEmpenho"] >= start) & (df["datEmpenho"] <= end)]
 
         # Filtros Locais (Empenho/Processo)
-        if f_empenho: df = df[df["codEmpenho"].isin(expandir_local(f_empenho, "filtro-empenho"))]
-        if f_processo: df = df[df["codProcesso"].isin(expandir_local(f_processo, "filtro-processo"))]
-        if f_credor: df = df[df["txtRazaoSocial"].isin(expandir_local(f_credor, "filtro-credor"))]
-        if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(expandir_local(f_objeto, "filtro-objeto"))]
+        if f_empenho: df = df[df["codEmpenho"].isin(f_empenho)]
+        if f_processo: df = df[df["codProcesso"].isin(f_processo)]
+        if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
+        if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
 
         # 1. Cards
         data_ext = "-"
@@ -440,10 +423,22 @@ def registrar_callbacks_empenhos(app):
 
         return card_atualizacao, cards, pivot.to_dict("records"), cols_table
 
-    # 7. GERA E FAZ DOWNLOAD DO PDF
+    @app.callback(
+        Output("trigger-pdf-empenho", "data"),
+        Output("emp-btn-download-pdf", "disabled"),
+        Input("emp-btn-download-pdf", "n_clicks"),
+        State("trigger-pdf-empenho", "data"),
+        prevent_initial_call=True
+    )
+    def trigger_download_empenho(n_clicks, data):
+        """Callback rápido que desabilita o botão e dispara o processo de geração."""
+        counter = (data or 0) + 1
+        return counter, True
+
     @app.callback(
         Output("emp-download-pdf", "data"),
-        Input("emp-btn-download-pdf", "n_clicks"),
+        Output("emp-btn-download-pdf", "disabled", allow_duplicate=True),
+        Input("trigger-pdf-empenho", "data"),
         State("store_filtros", "data"),
         State("emp-filtro-empenho", "value"),
         State("emp-filtro-processo", "value"),
@@ -452,18 +447,14 @@ def registrar_callbacks_empenhos(app):
         State("emp-checklist-colunas", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_report(n_clicks, store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
-        if not store or not store.get("ano"):
-            return no_update
+    def download_pdf_report(trigger, store, f_empenho, f_processo, f_credor, f_objeto, cols_selecionadas):
+        """Callback 'worker' que gera o PDF e reabilita o botão no final."""
+        if not trigger or not store or not store.get("ano"):
+            return no_update, False
         
         # --- Replicar a lógica de filtragem ---
         df = carrega_base("empenhos", store["ano"], None)
-        if df.empty:
-            return no_update
-
-        # Formata data para remover hora
-        if "datEmpenho" in df.columns:
-            df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce').dt.strftime('%d/%m/%Y')
+        if df.empty: return no_update, False
 
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
@@ -498,14 +489,13 @@ def registrar_callbacks_empenhos(app):
         # --- Gerar o PDF ---
         pdf_bytes = criar_relatorio_empenho_pdf(store, totais, pivot)
         
-        return dcc.send_bytes(pdf_bytes, "relatorio_empenhos.pdf")
+        return dcc.send_bytes(pdf_bytes, "relatorio_empenhos.pdf"), False
 
     # 8. GERA E FAZ DOWNLOAD DO EXCEL
     @app.callback(
         Output("emp-download-xlsx", "data"),
         Input("emp-btn-download", "n_clicks"),
-        State("emp-tabela", "data"),
-        prevent_initial_call=True
+        State("emp-tabela", "data"),prevent_initial_call=True
     )
     def download_excel_emp(n_clicks, dados_tabela):
         if not dados_tabela:
@@ -513,42 +503,6 @@ def registrar_callbacks_empenhos(app):
         
         df_excel = pd.DataFrame(dados_tabela)
         return dcc.send_data_frame(df_excel.to_excel, "empenhos.xlsx", index=False, sheet_name="Empenhos")
-
-    # 10. EXPANDIR SELEÇÃO LOCAL (UI)
-    @app.callback(
-        Output("emp-filtro-empenho", "value", allow_duplicate=True),
-        Output("emp-filtro-processo", "value", allow_duplicate=True),
-        Output("emp-filtro-credor", "value", allow_duplicate=True),
-        Output("emp-filtro-objeto", "value", allow_duplicate=True),
-        Input("emp-filtro-empenho", "value"),
-        Input("emp-filtro-processo", "value"),
-        Input("emp-filtro-credor", "value"),
-        Input("emp-filtro-objeto", "value"),
-        State("store_opcoes_emp", "data"),
-        prevent_initial_call=True
-    )
-    def expandir_selecao_ui(v_emp, v_proc, v_cred, v_obj, opcoes_base):
-        ctx = callback_context
-        if not ctx.triggered or not opcoes_base: return no_update, no_update, no_update, no_update
-        
-        def process(val, key):
-            if not val: return no_update
-            has_select_all = any(isinstance(x, str) and x.startswith("SELECT_ALL:") for x in val)
-            if not has_select_all: return no_update
-            
-            nova = []
-            for item in val:
-                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
-                    termo = item.split("SELECT_ALL:")[1].lower()
-                    if key in opcoes_base:
-                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower()]
-                        nova.extend(matches)
-                else:
-                    nova.append(item)
-            return list(set(nova))
-
-        return (process(v_emp, "filtro-empenho"), process(v_proc, "filtro-processo"), 
-                process(v_cred, "filtro-credor"), process(v_obj, "filtro-objeto"))
 
     # 9. LIMPA FILTROS LOCAIS
     @app.callback(

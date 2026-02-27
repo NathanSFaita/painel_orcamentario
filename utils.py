@@ -138,7 +138,7 @@ def monta_cards_resumo(dados_totais, mapa_colunas):
                     html.H4(formata_moeda(valor), className="card-title", style={"color": cor_texto, "fontWeight": "bold", "fontSize": "22px"})
                 ])
             ], className="h-100 shadow-sm", style={"backgroundColor": cor_fundo, "border": "none"})
-        ], style={"width": "20%", "flex": "0 1 15%"}, md=2, className="mb-3")
+        ], xs=12, sm=6, md=4, lg=2, className="mb-3")
 
     # Função auxiliar para criar quebra de linha
     def criar_quebra():

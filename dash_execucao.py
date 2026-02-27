@@ -1,5 +1,6 @@
 import dash
 import pandas as pd
+import os
 from dash import html, dcc, Input, Output, State, callback_context, no_update
 import dash_bootstrap_components as dbc
 from dash import dash_table as dt
@@ -7,8 +8,9 @@ from dash.dash_table.Format import Format, Scheme, Symbol, Group
 from filtros import layout_filtros_padrao, ano_padrao
 from utils import (carrega_base, lista_meses, gera_tabela_pivot,
                    cabecalho_padrao, tratar_selecao_todos, monta_cards_resumo,
-                   DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, gera_card_atualizacao)
+                   DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, gera_card_atualizacao, BASE_DIR)
 from gerar_pdf import criar_relatorio_execucao_pdf
+from relatorio_semanal import gerar_pdf_resumo
 
 # Mapa completo de colunas disponíveis para seleção
 MAPA_COLUNAS_EXECUCAO = {**DE_PARA_INDICES_EXECUCAO, **DE_PARA_EXECUCAO}
@@ -20,6 +22,9 @@ def layout_execucao():
         html.Div(id="exe-cards-container", className="mb-4"),
         # Store para guardar as opções dos filtros e evitar recargas desnecessárias
         dcc.Store(id="store_opcoes_exe", storage_type="memory"),
+        # Stores para gerenciar estado de loading dos botões de download
+        dcc.Store(id="trigger-pdf-detalhado"),
+        dcc.Store(id="trigger-pdf-resumo"),
         
         dbc.Row([
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", className="w-100 mt-4", 
@@ -70,10 +75,13 @@ def layout_execucao():
         ),
         dcc.Download(id="exe-download-xlsx"),
         dcc.Download(id="exe-download-pdf"),
+        dcc.Download(id="exe-download-resumo-pdf"),
         dbc.Button("📥 Download Excel", id="exe-btn-download", className="mt-3", 
                    style={"backgroundColor": "#198754", "borderColor": "#198754", "color": "white"}),
-        dbc.Button("📄 Download PDF", id="exe-btn-download-pdf", className="mt-3", 
+        dbc.Button("📄 Download PDF Detalhado", id="exe-btn-download-pdf", className="mt-3", 
                     style={"marginLeft": "10px", "backgroundColor": "#dc3545", "borderColor": "#dc3545", "color": "white"}),
+        dbc.Button("📄 Download Relatório Resumo", id="exe-btn-download-resumo", className="mt-3", 
+                   style={"marginLeft": "10px", "backgroundColor": "#6f42c1", "borderColor": "#6f42c1", "color": "white"}),
         html.Hr(),
         html.Div(id="exe-info-atualizacao")
         ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})
@@ -147,7 +155,7 @@ def registrar_callbacks_execucao(app):
             
         return opcoes_dict
 
-    # 2. Atualiza os Dropdowns com base no Store e no Search Value (Injeta "Selecionar Todos")
+    # 2. Atualiza os Dropdowns com base no Store e no Search Value
     @app.callback(
         [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
         Input("store_filtros", "data"),
@@ -188,20 +196,31 @@ def registrar_callbacks_execucao(app):
                 if "Todos" not in vals and col_name in df_filtered.columns:
                     df_filtered = df_filtered[df_filtered[col_name].isin(vals)]
             
-            # Gera opções a partir do DF filtrado
+            # Gera opções a partir do DF filtrado, garantindo que a seleção atual seja mantida
             col_target = mapa_cols[key_target]
             options = []
+            
+            # Pega a seleção atual do store para este filtro
+            current_selection = store.get(key_target, ["Todos"])
+
             if col_target in df_filtered.columns:
-                unique_vals = sorted(df_filtered[col_target].dropna().unique())
-                options = [{"label": "Todos", "value": "Todos"}] + [{"label": str(v), "value": v} for v in unique_vals]
-            else:
-                options = [{"label": "Todos", "value": "Todos"}]
+                unique_vals_from_filtered_df = set(df_filtered[col_target].dropna().unique())
+                
+                # Combina a seleção atual com as opções possíveis para não perder o valor
+                if "Todos" in current_selection:
+                    final_vals = unique_vals_from_filtered_df
+                else:
+                    final_vals = set(current_selection).union(unique_vals_from_filtered_df)
+                
+                options = [{"label": str(v), "value": v} for v in sorted(list(final_vals))]
+            
+            # Adiciona "Todos" no início
+            options.insert(0, {"label": "Todos", "value": "Todos"})
             
             # Filtro de busca (search_value)
             search = search_values[i]
             if search:
                 options = [opt for opt in options if search.lower() in str(opt["label"]).lower()]
-                options.insert(0, {"label": f"Selecionar todos contendo '{search}'", "value": f"SELECT_ALL:{search}"})
             
             outputs.append(options)
         
@@ -214,10 +233,10 @@ def registrar_callbacks_execucao(app):
         Input("exe-orgao", "value"), Input("exe-coordenacao", "value"), Input("exe-acao", "value"), Input("exe-projeto", "value"),
         Input("exe-elemento", "value"), Input("exe-vinculacao", "value"),
         Input("exe-fonte", "value"), Input("exe-despesa", "value"), Input("exe-descricao", "value"),
-        State("store_filtros", "data"), 
-        State("store_opcoes_exe", "data"), prevent_initial_call=True
+        State("store_filtros", "data"), prevent_initial_call=True
     )
-    def salva_filtros_exe(n_clicks, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store, opcoes_base):
+    def salva_filtros_exe(n_clicks, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store):
+        if not ano: return no_update
         if store is None: store = {}
         ctx = callback_context
         trigger_id = ctx.triggered[0]["prop_id"]
@@ -231,39 +250,21 @@ def registrar_callbacks_execucao(app):
                     "acao": ["Todos"], "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
                     "fonte": ["Todos"], "despesa": ["Todos"]}
         
-        # Função para expandir "SELECT_ALL"
-        def processar_selecao(selecao, key):
-            if not selecao: return ["Todos"]
-            nova_selecao = []
-            expandiu = False
-            for item in selecao:
-                if isinstance(item, str) and item.startswith("SELECT_ALL:"):
-                    termo = item.split("SELECT_ALL:")[1].lower()
-                    # Busca nas opções base
-                    if opcoes_base and key in opcoes_base:
-                        matches = [opt["value"] for opt in opcoes_base[key] if termo in str(opt["label"]).lower() and opt["value"] != "Todos"]
-                        nova_selecao.extend(matches)
-                    expandiu = True
-                else:
-                    nova_selecao.append(item)
-            
-            return tratar_selecao_todos(nova_selecao, store.get(key)) if not expandiu else nova_selecao
-
         # A base a ser exibida é sempre a mais recente de cada ano
         meses = lista_meses("execucao", ano)
         mes_atualizado = meses[-1] if meses else None
 
         store.update({
             "ano": ano, "mes": mes_atualizado,
-            "orgao": processar_selecao(orgao, "orgao"),
-            "coordenacao": processar_selecao(coord, "coordenacao"),
-            "acao": processar_selecao(acao, "acao"),
-            "projeto": processar_selecao(proj, "projeto"),
-            "elemento": processar_selecao(elem, "elemento"),
-            "vinculacao": processar_selecao(vinc, "vinculacao"),
-            "fonte": processar_selecao(fonte, "fonte"),
-            "despesa": processar_selecao(desp, "despesa"),
-            "descricao": processar_selecao(desc, "descricao")
+            "orgao": tratar_selecao_todos(orgao, store.get("orgao")),
+            "coordenacao": tratar_selecao_todos(coord, store.get("coordenacao")),
+            "acao": tratar_selecao_todos(acao, store.get("acao")),
+            "projeto": tratar_selecao_todos(proj, store.get("projeto")),
+            "elemento": tratar_selecao_todos(elem, store.get("elemento")),
+            "vinculacao": tratar_selecao_todos(vinc, store.get("vinculacao")),
+            "fonte": tratar_selecao_todos(fonte, store.get("fonte")),
+            "despesa": tratar_selecao_todos(desp, store.get("despesa")),
+            "descricao": tratar_selecao_todos(desc, store.get("descricao"))
         })
         return store
 
@@ -423,21 +424,37 @@ def registrar_callbacks_execucao(app):
 
         return card_atualizacao, cards, pivot.to_dict("records"), cols_table
 
-    # 6. GERA E FAZ DOWNLOAD DO PDF
+    # --- 6. Callbacks para Download de PDF Detalhado (com estado de 'disabled') ---
+    @app.callback(
+        Output("trigger-pdf-detalhado", "data"),
+        Output("exe-btn-download-pdf", "disabled"),
+        Input("exe-btn-download-pdf", "n_clicks"),
+        State("trigger-pdf-detalhado", "data"),
+        prevent_initial_call=True
+    )
+    def trigger_download_detalhado(n_clicks, data):
+        """Callback rápido que desabilita o botão e dispara o processo de geração."""
+        counter = (data or 0) + 1
+        return counter, True
+
     @app.callback(
         Output("exe-download-pdf", "data"),
-        Input("exe-btn-download-pdf", "n_clicks"),
+        Output("exe-btn-download-pdf", "disabled", allow_duplicate=True),
+        Input("trigger-pdf-detalhado", "data"),
         State("store_filtros", "data"),
         State("exe-checklist-colunas", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_exe(n_clicks, store, cols_selecionadas):
+    def download_pdf_exe(trigger, store, cols_selecionadas):
+        """Callback 'worker' que gera o PDF e reabilita o botão no final."""
+        if not trigger:
+            return no_update, False
         if not store or not store.get("mes"):
-            return no_update
+            return no_update, False
 
         df = carrega_base("execucao", store["ano"], store["mes"])
         if df.empty:
-            return no_update
+            return no_update, False
 
         # Extrai data de extração
         data_ext = "-"
@@ -486,9 +503,49 @@ def registrar_callbacks_execucao(app):
             pivot = pivot[cols_to_keep]
         
         pdf_bytes = criar_relatorio_execucao_pdf(store, totais, pivot, data_ext)
-        return dcc.send_bytes(pdf_bytes, "relatorio_execucao.pdf")
+        return dcc.send_bytes(pdf_bytes, "relatorio_execucao.pdf"), False
 
-    # 5. GERA E FAZ DOWNLOAD DO EXCEL
+    # --- 7. Callbacks para Download de PDF Resumido (com estado de 'disabled') ---
+    @app.callback(
+        Output("trigger-pdf-resumo", "data"),
+        Output("exe-btn-download-resumo", "disabled"),
+        Input("exe-btn-download-resumo", "n_clicks"),
+        State("trigger-pdf-resumo", "data"),
+        prevent_initial_call=True
+    )
+    def trigger_download_resumo(n_clicks, data):
+        """Callback rápido que desabilita o botão e dispara o processo de geração."""
+        counter = (data or 0) + 1
+        return counter, True
+
+    @app.callback(
+        Output("exe-download-resumo-pdf", "data"),
+        Output("exe-btn-download-resumo", "disabled", allow_duplicate=True),
+        Input("trigger-pdf-resumo", "data"),
+        prevent_initial_call=True
+    )
+    def download_resumo_pdf_exe(trigger):
+        """Callback 'worker' que gera o PDF resumido e reabilita o botão no final."""
+        if not trigger:
+            return no_update, False
+        try:
+            anos = sorted([d for d in os.listdir(os.path.join(BASE_DIR, "base_despesas")) if os.path.isdir(os.path.join(BASE_DIR, "base_despesas", d))])
+            ano_recente = anos[-1]
+            meses = lista_meses("execucao", ano_recente)
+            mes_recente = meses[-1]
+        except IndexError:
+            print("ERRO: Não foi possível encontrar dados de despesas para processar o resumo.")
+            return no_update, False
+
+        df = carrega_base("execucao", ano_recente, mes_recente)
+        if df.empty:
+            return no_update, False
+
+        pdf_bytes = gerar_pdf_resumo(df, ano_recente, mes_recente, output_dest='S')
+        
+        return dcc.send_bytes(pdf_bytes, f"relatorio_resumo_{ano_recente}_{mes_recente}.pdf"), False
+
+    # 8. GERA E FAZ DOWNLOAD DO EXCEL
     @app.callback(
         Output("exe-download-xlsx", "data"),
         Input("exe-btn-download", "n_clicks"),

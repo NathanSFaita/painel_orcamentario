@@ -182,11 +182,12 @@ def gerar_grafico_barras(df, filename, col_group, titulo):
     return True
 
 
-def gerar_pdf_resumo(df, ano, mes):
+def gerar_pdf_resumo(df, ano, mes, output_dest='F'):
     """
     Gera o PDF com uma página para cada órgão, contendo os cards de resumo.
     """
-    print("Iniciando geração do PDF...")
+    if output_dest == 'F':
+        print("Iniciando geração do PDF para arquivo...")
     pdf = PDF('L', 'mm', 'A4') # 'L' para paisagem (landscape)
 
     for orgao_nome in ORGAOS_RELATORIO:
@@ -271,14 +272,18 @@ def gerar_pdf_resumo(df, ano, mes):
                 if os.path.exists(chart_path_tema):
                     os.remove(chart_path_tema)
 
-    # Salva o arquivo PDF
-    os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
-    pdf_filename = f"relatorio_resumo_{ano}_{mes}.pdf"
-    pdf_filepath = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
-    pdf.output(pdf_filepath)
+    if output_dest == 'S':
+        # Retorna o conteúdo do PDF em memória para download no navegador
+        return pdf.output(dest='S').encode('latin-1')
+    else: # 'F' para file, o default
+        # Salva o arquivo PDF em disco para o envio de e-mail
+        os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
+        pdf_filename = f"relatorio_resumo_{ano}_{mes}.pdf"
+        pdf_filepath = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
+        pdf.output(pdf_filepath)
 
-    print(f"PDF gerado com sucesso em: {pdf_filepath}")
-    return pdf_filepath
+        print(f"PDF gerado com sucesso em: {pdf_filepath}")
+        return pdf_filepath
 
 
 # --- 3. FUNÇÃO DE ENVIO DE E-MAIL ---
