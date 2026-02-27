@@ -1,4 +1,4 @@
-import os
+﻿import os
 import pandas as pd
 import smtplib
 import ssl
@@ -9,7 +9,12 @@ from fpdf import FPDF
 from datetime import datetime
 from PIL import Image
 import io
+import tempfile
 import pytz
+import matplotlib
+matplotlib.use('Agg') # Define o backend para não precisar de interface gráfica (GUI)
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 # Importa funções e variáveis úteis do seu projeto
 from utils import (
@@ -33,36 +38,54 @@ EMAILS_FILE = os.path.join(BASE_DIR, "dados_auxiliares",  "emails_relatorio.xlsx
 PDF_OUTPUT_DIR = os.path.join(BASE_DIR, "relatorios", "relatorios_gerados")
 
 
-# --- 2. CLASSE PARA GERAR O PDF ---
+# --- 2. FUNÇÕES E CLASSE PARA GERAR O PDF ---
+
+def tratar_texto(texto):
+    """
+    Garante que o texto esteja compatível com latin-1 (usado pelo FPDF),
+    o encoding padrão da biblioteca. Acentos e 'ç' são mantidos.
+    """
+    if texto is None: return ""
+    return str(texto).encode('latin-1', 'replace').decode('latin-1')
+
 
 class PDF(FPDF):
     """ Classe customizada para o PDF com cabeçalho e rodapé. """
     def header(self):
-        self.set_font('Arial', 'B', 18)
+        self.set_font('Arial', 'B', 16) # Reduzido para caber o título completo
+        self.set_text_color(0, 0, 0) # Garante que o texto seja preto (resetando cor dos cards)
         titulo = getattr(self, 'titulo_pagina', 'Relatório Resumido de Execução Orçamentária')
         
         # --- Correção para o erro de 'Interlacing' no FPDF ---
         # O FPDF não suporta PNGs com 'interlacing'. Abrimos a imagem com a biblioteca
         # Pillow e a re-salvamos em memória sem essa opção para torná-la compatível.
         image_path = os.path.join(BASE_DIR, 'assets', 'smdhc_logo.png')
+        temp_img_path = None
         try:
             with Image.open(image_path) as img:
                 with io.BytesIO() as buffer:
                     # Salva a imagem em um buffer de bytes em formato PNG, que por padrão não usa 'interlacing'.
                     img.save(buffer, format='PNG')
                     buffer.seek(0)
-                    # Usa o buffer com a FPDF, especificando o tipo.
-                    self.image(buffer, 10, 8, 33, type='PNG')
+                    # Esta versão do FPDF espera caminho de arquivo (string), não BytesIO.
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_img:
+                        temp_img.write(buffer.getvalue())
+                        temp_img_path = temp_img.name
+            self.image(temp_img_path, 10, 8, 33, type='PNG')
         except Exception as e:
             # Captura erros (ex: arquivo não encontrado) e continua sem o logo.
             print(f"Aviso: Não foi possível carregar a imagem do logo. Erro: {e}")
+        finally:
+            if temp_img_path and os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
 
-        self.cell(0, 10, titulo, 0, 1, 'C')
-        self.ln(10)
+        self.cell(0, 10, tratar_texto(titulo), 0, 1, 'C')
+        self.ln(25) # Aumentado para evitar que os cards sobreponham o logo
 
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
+        self.set_text_color(0, 0, 0) # Garante que o texto seja preto
         data_geracao = datetime.now(pytz.timezone('America/Sao_Paulo')).strftime("%d/%m/%Y %H:%M:%S")
         self.cell(0, 10, f'Gerado em: {data_geracao}', 0, 0, 'L')
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
@@ -118,6 +141,47 @@ def desenhar_cards_no_pdf(pdf, totais):
         pdf.cell(card_w - 4, 8, formata_moeda(valor))
 
 
+def gerar_grafico_barras(df, filename, col_group, titulo):
+    """
+    Gera um gráfico de barras verticais genérico.
+    """
+    if col_group not in df.columns or "valOrcadoAtualizado" not in df.columns:
+        return False
+
+    df_chart = df.groupby(col_group, as_index=False)["valOrcadoAtualizado"].sum()
+    df_chart = df_chart[df_chart["valOrcadoAtualizado"] > 0]
+    df_chart = df_chart.sort_values("valOrcadoAtualizado", ascending=False)
+
+    # Limita a 10 itens para não poluir o gráfico se houver muitos elementos
+    if len(df_chart) > 10:
+        df_chart = df_chart.head(10)
+
+    if df_chart.empty:
+        return False
+
+    fig, ax = plt.subplots(figsize=(16, 4.5))
+    
+    # Trunca rótulos muito longos
+    labels = [str(x)[:40] + '...' if len(str(x)) > 40 else str(x) for x in df_chart[col_group]]
+    ax.bar(labels, df_chart["valOrcadoAtualizado"], color='#1f77b4')
+    
+    ax.set_title(titulo, fontsize=12, fontweight='bold')
+    ax.set_ylabel("Orçado Atualizado (R$)", fontsize=10)
+    
+    def currency_fmt(x, pos):
+        if x >= 1e9: return f'R$ {x/1e9:.1f}B'
+        if x >= 1e6: return f'R$ {x/1e6:.1f}M'
+        return f'R$ {x/1e3:.0f}K'
+    
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.xticks(rotation=45, ha='right', fontsize=9)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=100)
+    plt.close(fig)
+    return True
+
+
 def gerar_pdf_resumo(df, ano, mes):
     """
     Gera o PDF com uma página para cada órgão, contendo os cards de resumo.
@@ -126,8 +190,9 @@ def gerar_pdf_resumo(df, ano, mes):
     pdf = PDF('L', 'mm', 'A4') # 'L' para paisagem (landscape)
 
     for orgao_nome in ORGAOS_RELATORIO:
+        # Define o título ANTES de adicionar a página para que o cabeçalho possa usá-lo
+        pdf.titulo_pagina = f"Relatório Resumido de Execução Orçamentária - {orgao_nome}"
         pdf.add_page()
-        pdf.titulo_pagina = f"Resumo da Execução - {orgao_nome}"
 
         # Filtra o DataFrame para o órgão atual
         df_filtrado = df[df['orgao'] == orgao_nome].copy()
@@ -152,6 +217,59 @@ def gerar_pdf_resumo(df, ano, mes):
 
         # Desenha os cards na página atual do PDF
         desenhar_cards_no_pdf(pdf, totais)
+
+        # --- Gráfico (Temática para SMDHC, Elemento para outros) ---
+        # Gera o gráfico em um arquivo temporário e o insere no PDF abaixo dos cards
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_chart:
+            chart_path = tmp_chart.name
+        
+        chart_generated = False
+        if orgao_nome == "SMDHC":
+            chart_generated = gerar_grafico_barras(df_filtrado, chart_path, "politicas_para", "Recursos por Temática")
+        else:
+            chart_generated = gerar_grafico_barras(df_filtrado, chart_path, "nome_elemento", "Recursos por Elemento de Despesa")
+
+        if chart_generated:
+            # Posiciona o gráfico: x=10 (margem), y=110 (abaixo dos cards), w=275 (largura total), h=80
+            pdf.image(chart_path, x=10, y=110, w=275, h=0)
+            
+        if os.path.exists(chart_path):
+            os.remove(chart_path)
+
+        # --- Páginas Adicionais por Temática (Apenas para SMDHC) ---
+        if orgao_nome == "SMDHC":
+            tematicas = sorted(df_filtrado["politicas_para"].dropna().unique())
+            
+            for tema in tematicas:
+                if tema == "Emenda":
+                    continue
+                df_tema = df_filtrado[df_filtrado["politicas_para"] == tema].copy()
+                
+                if df_tema.empty: continue
+
+                # Configura nova página para a temática
+                pdf.titulo_pagina = f"Relatório Resumido - SMDHC - {tema}"
+                pdf.add_page()
+
+                # Calcula totais para a temática
+                cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df_tema.columns and "Saldo" not in c]
+                totais_tema = {c: df_tema[c].sum() for c in cols_numericas}
+
+                totais_tema["Saldo de Dotação"] = totais_tema.get("valDisponivel", 0) - totais_tema.get("valReservadoLiquido", 0)
+                totais_tema["Saldo de Reserva"] = totais_tema.get("valReservadoLiquido", 0) - totais_tema.get("valEmpenhadoLiquido", 0)
+
+                # Desenha os cards
+                desenhar_cards_no_pdf(pdf, totais_tema)
+
+                # Gera gráfico por Elemento de Despesa para detalhar a temática
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_chart_tema:
+                    chart_path_tema = tmp_chart_tema.name
+                
+                if gerar_grafico_barras(df_tema, chart_path_tema, "nome_elemento", f"Recursos por Elemento - {tema}"):
+                    pdf.image(chart_path_tema, x=10, y=110, w=275, h=0)
+                
+                if os.path.exists(chart_path_tema):
+                    os.remove(chart_path_tema)
 
     # Salva o arquivo PDF
     os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
@@ -203,10 +321,11 @@ def enviar_emails(caminho_pdf):
                 corpo_email = f"""
                 <p>Olá, {nome},</p>
                 <p>Segue em anexo o relatório resumido da execução orçamentária.</p>
-                <p>Este é um e-mail automático, por favor, não responda.</p>
+                <p>Para visualizar os dados completos, acesse o <a href="https://painel-orcamentario.onrender.com/">Painel Orçamentário</a>.</p>
+                <p>Este é um e-mail automático. Por favor, não responda.</p>
                 <br>
                 <p>Atenciosamente,</p>
-                <p>Painel Orçamentário SMDHC</p>
+                <p>Coordenadoria de Planejamento e Informação (CPI/SMDHC)</p>
                 """
                 msg.attach(MIMEText(corpo_email, 'html'))
 
