@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytz
 import os
 import sys
+from relatorio_semanal import gerar_pdf_resumo
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
     # Configurações iniciais
     TOKEN = os.getenv("API_TOKEN_SF")
-    # TOKEN = ""
+    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
@@ -41,7 +42,7 @@ def main():
 
     URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
     # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2026/basedadosexecucao_0226.xlsx"
-    # ano = "2025"
+    # ano = "2022"
     # mes = "12"
     orgaos_list = [8, 34, 78, 90]
 
@@ -53,6 +54,7 @@ def main():
     procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
     procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
     procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
+    procv_fonte = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_fonte.xlsx"))
 
     # Função para fazer requisições à API
     def fazer_requisicao(endpoint, params):
@@ -119,11 +121,13 @@ def main():
         "codGrupo": "", 
         "codModalidade": "",
         "codElemento": "",
-        "codVinculacaoRecurso": ""  
+        "codFonteRecurso": "",
+        "codVinculacaoRecurso": "",  
         # Outros parâmetros podem ser adicionados para filtrar
     }
 
-    colunas_iniciais = ["cd_orgao", "orgao", "uo", "funcao", "subfuncao", "programa", "projeto_atividade", "coordenação", "despesa", "vinculacao"]
+    colunas_iniciais = ["cd_orgao", "orgao", "uo", "funcao", "subfuncao", 
+                        "programa", "projeto_atividade", "coordenação", "despesa", "fonte", "vinculacao"]
     df_final = pd.DataFrame(columns=colunas_iniciais)
     requisicoes = 0
 
@@ -223,6 +227,9 @@ def main():
         elemento_despesa = categoria + grupo + modalidade + elemento + "00"
         nome_elemento = procv_elemento.loc[procv_elemento["num_elemento"] == int(elemento_despesa), "elemento_despesa"].values
 
+        desc_fonte = procv_fonte.loc[procv_fonte["cd_fonte"] == int(fonte), "ds_fonte"].values
+        desc_fonte = fonte + " - " + (desc_fonte[0] if len(desc_fonte) > 0 else "Não encontrado")
+
         df_despesas["cd_orgao"] = orgao
         
         nome_orgao = procv_orgao.loc[procv_orgao["cod_orgao"] == int(orgao), "orgao"].values
@@ -238,6 +245,8 @@ def main():
         df_despesas["politicas_para"] = politicas_para_val
         df_despesas["acao_programatica"] = acao_val
         df_despesas["despesa"] = elemento_despesa
+        df_despesas["fonte"] = fonte
+        df_despesas["fonte_descricao"] = desc_fonte
         df_despesas["vinculacao"] = vinculacao
         #df_despesas["ds_fonte"] = ds_vinculacao
 
@@ -284,6 +293,8 @@ def main():
         "programa",
         "projeto_atividade",
         "despesa",
+        "fonte",
+        "fonte_descricao",
         "vinculacao",
         "ds_fonte",
         "coordenação",
@@ -333,6 +344,13 @@ def main():
     df_final.to_excel(caminho_despesas, index=False)
     
     print(f"Dados salvos em {caminho_despesas}")
+
+    # Gera o relatório resumido em PDF diariamente após a criação da base
+    print("\nIniciando geração do relatório PDF resumido...")
+    if not df_final.empty:
+        gerar_pdf_resumo(df_final, ano, mes) # output_dest='F' (salvar em arquivo) é o padrão
+    else:
+        print("DataFrame final vazio, PDF resumido não gerado.")
 
     fim = time.time()
     horario_fim = datetime.now(tz=tz_brasilia).strftime("%H:%M:%S")

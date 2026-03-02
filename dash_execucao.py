@@ -10,7 +10,6 @@ from utils import (carrega_base, lista_meses, gera_tabela_pivot,
                    cabecalho_padrao, tratar_selecao_todos, monta_cards_resumo,
                    DE_PARA_EXECUCAO, DE_PARA_INDICES_EXECUCAO, gera_card_atualizacao, BASE_DIR)
 from gerar_pdf import criar_relatorio_execucao_pdf
-from relatorio_semanal import gerar_pdf_resumo
 
 # Mapa completo de colunas disponíveis para seleção
 MAPA_COLUNAS_EXECUCAO = {**DE_PARA_INDICES_EXECUCAO, **DE_PARA_EXECUCAO}
@@ -525,25 +524,30 @@ def registrar_callbacks_execucao(app):
         prevent_initial_call=True
     )
     def download_resumo_pdf_exe(trigger):
-        """Callback 'worker' que gera o PDF resumido e reabilita o botão no final."""
+        """Callback 'worker' que encontra o PDF resumido mais recente e o envia para download."""
         if not trigger:
             return no_update, False
+        
+        pdf_path = None
         try:
+            # Encontra o ano e mês mais recentes para construir o nome do arquivo
             anos = sorted([d for d in os.listdir(os.path.join(BASE_DIR, "base_despesas")) if os.path.isdir(os.path.join(BASE_DIR, "base_despesas", d))])
             ano_recente = anos[-1]
             meses = lista_meses("execucao", ano_recente)
             mes_recente = meses[-1]
+            
+            pdf_filename = f"relatorio_resumo_{ano_recente}_{mes_recente}.pdf"
+            pdf_path = os.path.join(BASE_DIR, "relatorios", "relatorios_gerados", pdf_filename)
+
         except IndexError:
-            print("ERRO: Não foi possível encontrar dados de despesas para processar o resumo.")
+            print("ERRO: Não foi possível encontrar dados de despesas para localizar o PDF.")
             return no_update, False
 
-        df = carrega_base("execucao", ano_recente, mes_recente)
-        if df.empty:
+        if pdf_path and os.path.exists(pdf_path):
+            return dcc.send_file(pdf_path), False
+        else:
+            print(f"AVISO: PDF resumido não encontrado em '{pdf_path}'. O arquivo pode ainda não ter sido gerado.")
             return no_update, False
-
-        pdf_bytes = gerar_pdf_resumo(df, ano_recente, mes_recente, output_dest='S')
-        
-        return dcc.send_bytes(pdf_bytes, f"relatorio_resumo_{ano_recente}_{mes_recente}.pdf"), False
 
     # 8. GERA E FAZ DOWNLOAD DO EXCEL
     @app.callback(

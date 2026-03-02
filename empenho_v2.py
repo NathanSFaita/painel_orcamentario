@@ -7,7 +7,7 @@ import os
 
 # Configurações iniciais
 TOKEN = os.getenv("API_TOKEN_SF")
-# TOKEN = ""
+TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação
@@ -37,6 +37,7 @@ baseaux_path = os.path.dirname(__file__)
 procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
 procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
 procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
+procv_fonte = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_fonte.xlsx"))
 
 params_emp = {
     "anoEmpenho": "",
@@ -49,8 +50,8 @@ requisicoes = 0
 requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
-# ano = "2025"
-# mes = "12"
+ano = "2022"
+mes = "12"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34
@@ -112,9 +113,10 @@ for orgao_api in lista_orgaos:
             ).astype("Int64")
 
             def col_str(col):
-                if orgao_api == "08":
-                    return "0" + df_empenhos[col].astype("string").fillna("")
-                return df_empenhos[col].astype("string").fillna("")
+                series = df_empenhos[col].astype("string").fillna("")
+                if col == "codOrgao":
+                    return series.str.zfill(2) # Garante que o código do órgão tenha sempre 2 dígitos
+                return series
 
             despesa = (
                 col_str("codCategoria")
@@ -146,10 +148,27 @@ for orgao_api in lista_orgaos:
             
             fonte_str = df_empenhos["codFonteRecurso"].astype("string").fillna("")
 
-            df_empenhos["Fonte"] = fonte_str.str.slice(0, 2)
+            # Pega a parte antes do primeiro ponto e garante 2 dígitos (ex: '1' -> '01')
+            df_empenhos["Fonte"] = fonte_str.str.split('.').str[0].str.zfill(2)
             df_empenhos["codExeFonte"] = fonte_str.str.slice(3, 4)
             df_empenhos["codDestinacaoRecurso"] = fonte_str.str.slice(5, 8)
             df_empenhos["codVinculacaoRecurso"] = fonte_str.str.slice(9, 13)
+
+            # Busca descrição da fonte via procv_fonte (Excel) - Igual ao despesas.py
+            # Converte para numérico para o merge funcionar corretamente com o Excel
+            df_empenhos["Fonte_int"] = pd.to_numeric(df_empenhos["Fonte"], errors="coerce")
+            
+            df_empenhos = df_empenhos.merge(
+                procv_fonte[["cd_fonte", "ds_fonte"]],
+                left_on="Fonte_int",
+                right_on="cd_fonte",
+                how="left"
+            )
+            
+            df_empenhos["fonte_descricao"] = df_empenhos["Fonte"] + " - " + df_empenhos["ds_fonte"].fillna("Não encontrado")
+            
+            # Remove colunas auxiliares do merge
+            df_empenhos.drop(columns=["Fonte_int", "cd_fonte", "ds_fonte"], inplace=True)
 
             tz_brasilia = pytz.timezone('America/Sao_Paulo')
             df_empenhos["data_hora_extracao"] = str(datetime.now(tz=tz_brasilia).strftime("%d/%m/%Y %H:%M:%S"))

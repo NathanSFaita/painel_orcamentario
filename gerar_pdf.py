@@ -33,6 +33,85 @@ class PDF(FPDF):
         self.cell(0, 10, tratar_texto(texto_rodape), 0, 0, 'L')
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
 
+def desenhar_cards_empenho_pdf(pdf, totais):
+    """
+    Desenha os cards de resumo de empenho no PDF.
+    """
+    # Layout e cores dos cards (RGB)
+    cards_layout = [
+        {'titulo': "Empenhado", 'key': 'valEmpenhadoLiquido', 'color': (253, 126, 20)}, # #fd7e14
+        {'titulo': "Liquidado", 'key': 'valLiquidado', 'color': (184, 46, 46)}, # #b82e2e
+        {'titulo': "Pago", 'key': 'valPagoExercicio', 'color': (135, 25, 135)}, # #871987
+    ]
+
+    card_w, card_h = 51, 25
+    spacing = 5
+    start_x = 10 # Margem esquerda
+
+    y_pos = pdf.get_y()
+
+    for i, card_info in enumerate(cards_layout):
+        x = start_x + i * (card_w + spacing)
+        valor = totais.get(card_info['key'], 0)
+
+        # Desenha o card
+        pdf.set_fill_color(*card_info['color'])
+        pdf.rect(x, y_pos, card_w, card_h, 'F')
+
+        # Escreve o título
+        pdf.set_xy(x + 2, y_pos + 4)
+        pdf.set_font('Arial', 'B', 10)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(card_w - 4, 6, tratar_texto(card_info['titulo']))
+
+        # Escreve o valor
+        pdf.set_xy(x + 2, y_pos + 12)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(card_w - 4, 8, formata_moeda(valor))
+    
+    # Move o cursor para baixo dos cards
+    pdf.set_y(y_pos + card_h + 10)
+    pdf.set_text_color(0, 0, 0)
+
+def desenhar_cards_execucao_pdf(pdf, totais):
+    """
+    Desenha uma representação dos cards de resumo de execução no PDF.
+    """
+    cards_layout = [
+        {'titulo': "Orçado Inicial", 'key': 'valOrcadoInicial', 'color': (108, 117, 125)},
+        {'titulo': "Orçado Atualizado", 'key': 'valOrcadoAtualizado', 'color': (40, 167, 69)},
+        {'titulo': "Congelado", 'key': 'valCongelado', 'color': (23, 162, 184)},
+        {'titulo': "Disponível", 'key': 'valDisponivel', 'color': (0, 123, 255)},
+        {'titulo': "Saldo de Dotação", 'key': 'Saldo de Dotação', 'color': (3, 187, 133)},
+        {'titulo': "Reservado", 'key': 'valReservadoLiquido', 'color': (212, 193, 27)},
+        {'titulo': "Saldo de Reserva", 'key': 'Saldo de Reserva', 'color': (175, 134, 90)},
+        {'titulo': "Empenhado", 'key': 'valEmpenhadoLiquido', 'color': (255, 127, 14)},
+        {'titulo': "Liquidado", 'key': 'valLiquidado', 'color': (178, 34, 34)},
+        {'titulo': "Pago", 'key': 'valPagoExercicio', 'color': (135, 25, 135)},
+    ]
+
+    card_w, card_h, spacing = 51, 25, 5
+    start_x = 11
+    y_pos = pdf.get_y()
+
+    for i, card_info in enumerate(cards_layout):
+        col_index, row_index = i % 5, i // 5
+        x = start_x + col_index * (card_w + spacing)
+        y = y_pos + row_index * (card_h + 10)
+        valor = totais.get(card_info['key'], 0)
+        pdf.set_fill_color(*card_info['color'])
+        pdf.rect(x, y, card_w, card_h, 'F')
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Arial', 'B', 10)
+        pdf.set_xy(x + 2, y + 4)
+        pdf.cell(card_w - 4, 6, tratar_texto(card_info['titulo']))
+        pdf.set_font('Arial', 'B', 12)
+        pdf.set_xy(x + 2, y + 12)
+        pdf.cell(card_w - 4, 8, formata_moeda(valor))
+
+    pdf.set_y(y_pos + 2 * (card_h + 10))
+    pdf.set_text_color(0, 0, 0)
+
 def criar_relatorio_empenho_pdf(store, totais, df_tabela):
     """
     Gera o relatório de empenhos em PDF.
@@ -49,53 +128,14 @@ def criar_relatorio_empenho_pdf(store, totais, df_tabela):
     pdf.titulo_relatorio = 'Relatório de Empenhos'
     pdf.add_page()
 
-    y_inicio = pdf.get_y()
-
-    # --- 1. Seção de Filtros (Esquerda) ---
-    pdf.set_xy(10, y_inicio)
+    # --- 1. Seção de Resumo (Cards) ---
     pdf.set_font('Arial', 'B', 12)
-    pdf.cell(130, 10, '1. Filtros Aplicados', 0, 1, 'L')
-    pdf.set_font('Arial', '', 10)
-    
-    filtros_str = []
-    for chave in ["ano", "orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa"]:
-        valor = store.get(chave)
-        if valor:
-            if isinstance(valor, list):
-                if "Todos" not in valor and valor:
-                    filtros_str.append(f"{chave.title()}: {', '.join(map(str, valor))}")
-            else:
-                filtros_str.append(f"{chave.title()}: {valor}")
+    pdf.cell(0, 10, '1. Resumo Financeiro', 0, 1, 'L')
+    desenhar_cards_empenho_pdf(pdf, totais)
 
-    if not filtros_str:
-        pdf.set_x(10)
-        pdf.multi_cell(130, 5, "Nenhum filtro específico aplicado.", 0, 'L')
-    else:
-        for f in filtros_str:
-            pdf.set_x(10)
-            pdf.multi_cell(130, 5, tratar_texto(f), 0, 'L')
-    
-    y_filtros = pdf.get_y()
-
-    # --- 2. Seção de Resumo (Direita) ---
-    pdf.set_xy(150, y_inicio)
+    # --- 2. Seção da Tabela ---
     pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, '2. Resumo Financeiro', 0, 1, 'L')
-    pdf.set_font('Arial', '', 10)
-
-    for chave, nome_exibicao in DE_PARA_EMPENHOS.items():
-        valor = totais.get(chave, 0)
-        texto_valor = formata_moeda(valor)
-        pdf.set_x(150)
-        pdf.cell(50, 8, tratar_texto(f'{nome_exibicao}:'), 0, 0)
-        pdf.cell(0, 8, texto_valor, 0, 1)
-    
-    y_resumo = pdf.get_y()
-    pdf.set_y(max(y_filtros, y_resumo) + 5)
-
-    # --- 3. Seção da Tabela ---
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, '3. Detalhamento dos Empenhos', 0, 1, 'L')
+    pdf.cell(0, 10, '2. Detalhamento dos Empenhos', 0, 1, 'L')
     
     colunas_pdf = {
         "datEmpenho": ("Data Emp.", 20),
@@ -285,56 +325,14 @@ def criar_relatorio_execucao_pdf(store, totais, df_tabela, data_extracao=None):
     pdf.data_extracao = data_extracao
     pdf.add_page()
 
-    y_inicio = pdf.get_y()
-
-    # --- 1. Seção de Filtros (Esquerda) ---
-    pdf.set_xy(10, y_inicio)
+    # --- 1. Seção de Resumo (Cards) ---
     pdf.set_font('Arial', 'B', 12)
-    pdf.cell(130, 10, '1. Filtros Aplicados', 0, 1, 'L')
-    pdf.set_font('Arial', '', 10)
-    
-    filtros_str = []
-    # Lista de chaves relevantes para execução
-    for chave in ["ano", "mes", "orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa"]:
-        valor = store.get(chave)
-        if valor:
-            if isinstance(valor, list):
-                if "Todos" not in valor and valor:
-                    filtros_str.append(f"{chave.title()}: {', '.join(map(str, valor))}")
-            else:
-                filtros_str.append(f"{chave.title()}: {valor}")
+    pdf.cell(0, 10, '1. Resumo Financeiro', 0, 1, 'L')
+    desenhar_cards_execucao_pdf(pdf, totais)
 
-    if not filtros_str:
-        pdf.set_x(10)
-        pdf.multi_cell(130, 5, "Nenhum filtro específico aplicado.", 0, 'L')
-    else:
-        for f in filtros_str:
-            pdf.set_x(10)
-            pdf.multi_cell(130, 5, tratar_texto(f), 0, 'L')
-    
-    y_filtros = pdf.get_y()
-
-    # --- 2. Seção de Resumo (Direita) ---
-    pdf.set_xy(150, y_inicio)
+    # --- 2. Seção da Tabela ---
     pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, '2. Resumo Financeiro', 0, 1, 'L')
-    pdf.set_font('Arial', '', 10)
-
-    # Usa o dicionário de execução para iterar sobre os totais
-    for chave, nome_exibicao in DE_PARA_EXECUCAO.items():
-        valor = totais.get(chave, 0)
-        texto_valor = formata_moeda(valor)
-        # Ajusta largura para caber nomes maiores
-        pdf.set_x(150)
-        pdf.cell(50, 8, tratar_texto(f'{nome_exibicao}:'), 0, 0)
-        pdf.cell(0, 8, texto_valor, 0, 1)
-    
-    y_resumo = pdf.get_y()
-    pdf.set_y(max(y_filtros, y_resumo) + 5)
-
-    # --- 3. Seção da Tabela ---
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, '3. Detalhamento da Execução', 0, 1, 'L')
+    pdf.cell(0, 10, '2. Detalhamento da Execução', 0, 1, 'L')
     
     # Define colunas específicas para o relatório de execução
     colunas_pdf = {
