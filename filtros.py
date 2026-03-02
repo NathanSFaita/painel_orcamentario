@@ -71,22 +71,22 @@ def layout_filtros_padrao(prefixo):
                         dbc.Col([
                             criar_label_com_tooltip("Órgão", prefixo),
                             dcc.Dropdown(id=f"{prefixo}-orgao", multi=True, closeOnSelect=False, optionHeight=75,
-                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1009})
+                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1001})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Coordenação", prefixo),
                             dcc.Dropdown(id=f"{prefixo}-coordenacao", multi=True, closeOnSelect=False, optionHeight=75,
-                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1008})
+                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1002})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Descrição da Coordenação", prefixo),
                             dcc.Dropdown(id=f"{prefixo}-descricao", multi=True, closeOnSelect=False, optionHeight=75,
-                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1007})
+                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1003})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Ação", prefixo),
                             dcc.Dropdown(id=f"{prefixo}-projeto", multi=True, closeOnSelect=False, optionHeight=75,
-                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1006})
+                                         style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1004})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Atividade", prefixo),
@@ -95,19 +95,19 @@ def layout_filtros_padrao(prefixo):
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Despesa (Código)", prefixo),
-                            dcc.Dropdown(id=f"{prefixo}-despesa", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1004})
+                            dcc.Dropdown(id=f"{prefixo}-despesa", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1006})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Elemento de Despesa", prefixo),
-                            dcc.Dropdown(id=f"{prefixo}-elemento", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1003})
+                            dcc.Dropdown(id=f"{prefixo}-elemento", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1007})
                         ], md=2),
                         dbc.Col([
                             criar_label_com_tooltip("Vinculação", prefixo),
-                            dcc.Dropdown(id=f"{prefixo}-vinculacao", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1002})
+                            dcc.Dropdown(id=f"{prefixo}-vinculacao", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1008})
                         ], md=1),
                         dbc.Col([
                             criar_label_com_tooltip("Fonte", prefixo),
-                            dcc.Dropdown(id=f"{prefixo}-fonte", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1001})
+                            dcc.Dropdown(id=f"{prefixo}-fonte", multi=True, closeOnSelect=False, optionHeight=75, style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1009})
                         ], md=2),
                     ], className="mb-2 g-1", justify="center"),
                 ] + (
@@ -118,11 +118,11 @@ def layout_filtros_padrao(prefixo):
                             dbc.Col([
                                 criar_label_com_tooltip("Nº Empenho", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-empenho", multi=True, closeOnSelect=False, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 905})], md=1),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1010})], md=1),
                             dbc.Col([
                                 criar_label_com_tooltip("Processo SEI", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-processo", multi=True, closeOnSelect=False, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 904})], md=2),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1011})], md=2),
                             dbc.Col([
                                 html.Label("Data Empenho", className="fw-bold w-100", style={"minHeight": "50px", "display": "flex", "alignItems": "end"}),
                                 dcc.DatePickerRange(
@@ -130,17 +130,17 @@ def layout_filtros_padrao(prefixo):
                                     display_format="DD/MM/YYYY",
                                     start_date_placeholder_text="Início",
                                     end_date_placeholder_text="Fim",
-                                    style={"zIndex": 903, "width": "100%", "position": "relative"}
+                                    style={"zIndex": 1012, "width": "100%", "position": "relative"}
                                 )
                             ], md=3),
                             dbc.Col([
                                 criar_label_com_tooltip("Credor", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-credor", multi=True, closeOnSelect=False, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 902})], md=3),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1013})], md=3),
                             dbc.Col([
                                 criar_label_com_tooltip("Objeto do Empenho", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-objeto", multi=True, closeOnSelect=False, clearable=True, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 901})], md=3),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1014})], md=3),
                         ], className="mb-4 g-1", justify="center"),
                     ] if prefixo == 'emp' else []
                 )
