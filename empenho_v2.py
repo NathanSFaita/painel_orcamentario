@@ -7,7 +7,7 @@ import os
 
 # Configurações iniciais
 TOKEN = os.getenv("API_TOKEN_SF")
-TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+# TOKEN = ""
 BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
 
 # Headers para autenticação
@@ -50,8 +50,8 @@ requisicoes = 0
 requisicao = 0
 lista_orgaos = ["08", "34", "78", "90"]
 
-ano = "2022"
-mes = "12"
+# ano = "2022"
+# mes = "12"
 params_emp["anoEmpenho"] = ano
 params_emp["mesEmpenho"] = mes
 #params_emp["codOrgao"] = 34

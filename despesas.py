@@ -28,7 +28,7 @@ def main():
        mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
     # Configurações iniciais
     TOKEN = os.getenv("API_TOKEN_SF")
-    TOKEN = "b9c10754-7b28-3aee-b0bc-4f6785f9c6bd"
+    # TOKEN = ""
     print("TOKEN carregado?", bool(TOKEN))
     print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
