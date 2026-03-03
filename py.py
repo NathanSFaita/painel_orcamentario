@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import requests
 from datetime import datetime
@@ -14,47 +16,43 @@ headers = {
     "Content-Type": "application/json"
 }
 
-# Função para fazer requisições à API
-def fazer_requisicao(endpoint, params=None):
-    url = f"{BASE_URL}/{endpoint}"
-    response = requests.get(url, headers=headers, params=params)
-    try:
-        return response.json()
-    except Exception:
-        print(f"Resposta inválida da API paraq {url} com params {params}")
-        return None
+def fazer_requisicao(endpoint, params):
+        url = f"{BASE_URL}/{endpoint}"
+        try:
+            response = requests.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=60
+            )
+        except Exception as e:
+            print(f"Erro na requisição HTTP: {e}")
+            sys.exit(1)
 
-df_empenhos = pd.read_csv(
-    "base_empenhos/empenhos_2025.csv",
-    sep=';',
-    dtype={'codProcesso': str, 'dotacao_completa': str, 'anoContrato': str},
-    low_memory=False
-)
+        print(f"[{endpoint}] Status code:", response.status_code)
 
-pivot = pd.pivot_table(
-    df_empenhos,
-    index=["codProcesso", "dotacao_completa", "anoContrato"],
-    values=["valEmpenhadoLiquido"],
-    aggfunc="sum",
-    fill_value=0
-).reset_index()
+        if response.status_code != 200:
+            print("Resposta não-200 da API:")
+            print(response.status_code, response.text[:1000])
+            sys.exit(1)
 
-# Calcula o total por dotacao_completa
-totais_dotacao = pivot.groupby("codProcesso")["valEmpenhadoLiquido"].sum()
-totais_dotacao.index = totais_dotacao.index.astype(str)
+        if not response.text or response.text.strip() == "":
+            print("Resposta vazia da API")
+            sys.exit(1)
 
-#totais_dotacao = totais_dotacao.replace(0, np.nan)
+        try:
+            payload = response.json()
+        except Exception:
+            print("Falha ao converter resposta em JSON")
+            print(response.text[:1000])
+            sys.exit(1)
+        return payload
 
-# Calcula o total por codProcesso (o "pai")
-totais_codprocesso = pivot.groupby("codProcesso")["valEmpenhadoLiquido"].sum()
+params_proj = {
+     "anoExercicio": "2026",
+}
 
-# Calcula o percentual de cada dotacao_completa dentro do seu codProcesso
-pivot["percentual"] = (
-    pivot["valEmpenhadoLiquido"] /
-    pivot["codProcesso"].map(totais_codprocesso)
-) * 100
+proj_atividades = fazer_requisicao("projetosAtividades", params_proj)
+df_proj = pd.json_normalize(proj_atividades["lstProjetosAtividades"])
 
-pivot["percentual"] = pivot["percentual"].round(2)
-
-pivot.to_csv("pivot_empenhos_2025.csv", index=False, sep=';', encoding='utf-8-sig')
-print("Finalizado")
+print(df_proj)

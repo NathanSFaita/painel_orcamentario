@@ -41,8 +41,8 @@ def main():
     }
 
     URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
-    # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2026/basedadosexecucao_0226.xlsx"
-    # ano = "2022"
+    # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2023/basedadosexecucao_1223.xlsx"
+    # ano = "2023"
     # mes = "12"
     orgaos_list = [8, 34, 78, 90]
 
@@ -107,6 +107,15 @@ def main():
         #         sys.exit(1)
 
         return payload
+
+    params_proj = {
+     "anoExercicio": "2026",
+}
+    proj_atividades = fazer_requisicao("projetosAtividades", params_proj)
+    df_proj = pd.json_normalize(proj_atividades["lstProjetosAtividades"])   
+    # Garante que a coluna de código seja numérica para comparação correta
+    if not df_proj.empty and "codProjetoAtividade" in df_proj.columns:
+        df_proj["codProjetoAtividade"] = pd.to_numeric(df_proj["codProjetoAtividade"], errors="coerce")
 
     params_dp = {
         "anoDotacao": "",
@@ -218,11 +227,16 @@ def main():
             if len(acao) > 0:
                 acao_val = acao[0]
             else:
-                acao = "Não encontrado"
+                acao_val = "Não encontrado"
         else:
             coordenacao_val = "Emenda"
             politicas_para_val = "Emenda"
-            acao_val = "Emenda"
+            # Busca segura para evitar erro de array vazio
+            temp_acao = df_proj.loc[df_proj["codProjetoAtividade"] == proj_ativ, "txtDescricaoProjetoAtividade"].values
+            if len(temp_acao) > 0:
+                acao_val = temp_acao[0]
+            else:
+                acao_val = "Emenda Parlamentar"
 
         elemento_despesa = categoria + grupo + modalidade + elemento + "00"
         nome_elemento = procv_elemento.loc[procv_elemento["num_elemento"] == int(elemento_despesa), "elemento_despesa"].values

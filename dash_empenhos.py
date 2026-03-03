@@ -173,7 +173,7 @@ def registrar_callbacks_empenhos(app):
         
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
-            "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", "fonte_descricao": "fonte_descricao",
+            "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", "fonte-descricao": "fonte_descricao",
             "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para",
             "filtro-empenho": "codEmpenho", "filtro-processo": "codProcesso",
             "filtro-credor": "txtRazaoSocial", "filtro-objeto": "anexo_descricaoAnexo"
