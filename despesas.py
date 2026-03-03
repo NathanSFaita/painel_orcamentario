@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytz
 import os
 import sys
-from relatorio_semanal import gerar_pdf_resumo
+from relatorio_mensal import gerar_pdf_resumo
 
 
 def main():
