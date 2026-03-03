@@ -139,7 +139,7 @@ def registrar_callbacks_execucao(app):
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica",
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
-            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para", "fonte_descricao": "fonte_descricao"
         }
         
         opcoes_dict = {}
@@ -156,30 +156,31 @@ def registrar_callbacks_execucao(app):
 
     # 2. Atualiza os Dropdowns com base no Store e no Search Value
     @app.callback(
-        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
+        [Output(f"exe-{k}", "options") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao", "fonte-descricao"]],
         Input("store_filtros", "data"),
-        [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]]
+        [Input(f"exe-{k}", "search_value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao", "fonte-descricao"]]
     )
-    def atualiza_dropdowns_exe(store, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc):
+    def atualiza_dropdowns_exe(store, s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc, s_fonte_desc):
         if not store:
-            return [[{"label": "Todos", "value": "Todos"}] for _ in range(9)]
+            return [[{"label": "Todos", "value": "Todos"}] for _ in range(10)]
         
         ano = store.get("ano")
         mes = store.get("mes")
         
         df = carrega_base("execucao", ano, mes)
         if df.empty:
-             return [[{"label": "Todos", "value": "Todos"}] for _ in range(9)]
+             return [[{"label": "Todos", "value": "Todos"}] for _ in range(10)]
 
-        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]
+        keys = ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao", "fonte-descricao"]
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica",
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
-            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para",
+            "fonte-descricao": "fonte_descricao"
         }
         
         # Lista de search values na mesma ordem dos outputs
-        search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc]
+        search_values = [s_orgao, s_coord, s_acao, s_proj, s_elem, s_vinc, s_fonte, s_desp, s_desc, s_fonte_desc]
         
         outputs = []
         for i, key_target in enumerate(keys):
@@ -232,9 +233,10 @@ def registrar_callbacks_execucao(app):
         Input("exe-orgao", "value"), Input("exe-coordenacao", "value"), Input("exe-acao", "value"), Input("exe-projeto", "value"),
         Input("exe-elemento", "value"), Input("exe-vinculacao", "value"),
         Input("exe-fonte", "value"), Input("exe-despesa", "value"), Input("exe-descricao", "value"),
+        Input("exe-fonte-descricao", "value"),
         State("store_filtros", "data"), prevent_initial_call=True
     )
-    def salva_filtros_exe(n_clicks, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, store):
+    def salva_filtros_exe(n_clicks, ano, orgao, coord, acao, proj, elem, vinc, fonte, desp, desc, fonte_desc, store):
         if not ano: return no_update
         if store is None: store = {}
         ctx = callback_context
@@ -247,7 +249,7 @@ def registrar_callbacks_execucao(app):
             novo_mes = meses[-1] if meses else None
             return {**store, "ano": novo_ano, "mes": novo_mes, "orgao": ["Todos"], "coordenacao": ["Todos"],
                     "acao": ["Todos"], "projeto": ["Todos"], "descricao": ["Todos"], "elemento": ["Todos"], "vinculacao": ["Todos"],
-                    "fonte": ["Todos"], "despesa": ["Todos"]}
+                    "fonte": ["Todos"], "despesa": ["Todos"], "fonte_descricao": ["Todos"]}
         
         # A base a ser exibida é sempre a mais recente de cada ano
         meses = lista_meses("execucao", ano)
@@ -263,22 +265,24 @@ def registrar_callbacks_execucao(app):
             "vinculacao": tratar_selecao_todos(vinc, store.get("vinculacao")),
             "fonte": tratar_selecao_todos(fonte, store.get("fonte")),
             "despesa": tratar_selecao_todos(desp, store.get("despesa")),
-            "descricao": tratar_selecao_todos(desc, store.get("descricao"))
+            "descricao": tratar_selecao_todos(desc, store.get("descricao")),
+            "fonte_descricao": tratar_selecao_todos(fonte_desc, store.get("fonte_descricao"))
         })
         return store
 
     # 2. STORE -> UI (Carrega dados do Store para os Dropdowns)
     @app.callback(
-        [Output("exe-ano", "value")] + [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao"]],
+        [Output("exe-ano", "value")] + [Output(f"exe-{k}", "value") for k in ["orgao","coordenacao","acao","projeto","elemento","vinculacao","fonte","despesa","descricao", "fonte-descricao"]],
         Input("store_filtros", "data")
     )
     def carrega_ui_exe(store):
-        if not store: return (ano_padrao,) + (["Todos"],)*9
+        if not store: return (ano_padrao,) + (["Todos"],)*10
         return (store.get("ano", ano_padrao),
                 store.get("orgao", ["Todos"]), store.get("coordenacao", ["Todos"]), 
                 store.get("acao", ["Todos"]), store.get("projeto", ["Todos"]),
                 store.get("elemento", ["Todos"]), store.get("vinculacao", ["Todos"]), 
-                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]))
+                store.get("fonte", ["Todos"]), store.get("despesa", ["Todos"]), store.get("descricao", ["Todos"]),
+                store.get("fonte_descricao", ["Todos"]))
 
     # 3. CONTROLE DO MODAL DE COLUNAS
     @app.callback(
@@ -340,7 +344,8 @@ def registrar_callbacks_execucao(app):
             "vinculacao": "vinculacao",
             "fonte": "ds_fonte",
             "despesa": "despesa",
-            "descricao": "politicas_para"
+            "descricao": "politicas_para",
+            "fonte_descricao": "fonte_descricao"
         }
 
         for k_store, col_df in mapa_filtros.items():
@@ -466,7 +471,8 @@ def registrar_callbacks_execucao(app):
         mapa_filtros = {
             "orgao": "orgao", "coordenacao": "coordenação", "acao": "acao_programatica", 
             "projeto": "projeto_atividade", "elemento": "nome_elemento", "vinculacao": "vinculacao",
-            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para"
+            "fonte": "ds_fonte", "despesa": "despesa", "descricao": "politicas_para",
+            "fonte_descricao": "fonte_descricao"
         }
         for k_store, col_df in mapa_filtros.items():
             vals = store.get(k_store, ["Todos"])

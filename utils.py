@@ -19,7 +19,9 @@ DE_PARA_INDICES_EXECUCAO = {
     "acao_programatica": "Atividade",
     "projeto_atividade": "Ação",
     "nome_elemento": "Elemento de Despesa",
-    "ds_fonte": "Fonte"
+    "fonte_descricao": "Fonte (Descrição)",
+    "ds_fonte": "Vinculação"
+    
 }
 
 # Dicionário para colunas de valores
@@ -44,10 +46,11 @@ DE_PARA_INDICES_EMPENHOS = {
     "coordenacao": "Coordenação",
     "politicas_para": "Descrição",
     "acao_programatica": "Atividade",
-    "codVinculacaoRecurso": "Vinculação",
+    "codVinculacaoRecurso": "Vinculação (Código)",
     "codDespesa": "Despesa",
     "nome_elemento": "Elemento de Despesa",
-    "txDescricaoFonteRecurso": "Fonte",
+    "txDescricaoFonteRecurso": "Vinculação",
+    "fonte_descricao": "Fonte (Descrição)",
     "txtRazaoSocial": "Credor",
     "anexo_descricaoAnexo": "Objeto do Empenho"
 }
@@ -106,8 +109,9 @@ descrição_cards = {
     "Ação": "Código numérico da atividade.",
     "Despesa (Código)": "Código numérico da despesa (ex: 339000 - Serviços de Terceiros - Pessoa Jurídica).",
     "Elemento de Despesa": "Classificação do objeto do gasto orçamentário (ex: material de consumo, serviços de terceiros, etc).",
-    "Vinculação": "Código numérico da vinculação.",
-    "Fonte": "Indica se a despesa possui ou não alguma vinculação específica (Orçamento Cidadão, Emendas etc.).",
+    "Vinculação (Código)": "Código numérico da vinculação.",
+    "Vinculação": "Indica se a despesa possui ou não alguma vinculação específica (Orçamento Cidadão, Emendas etc.).",
+    "Fonte (Descrição)": "Descrição detalhada da fonte de recurso, incluindo código e nome.",
     "Credor": "Nome do fornecedor ou prestador de serviço do empenho.",
     "Data do Empenho": "Data em que o empenho foi emitido.",
     "Nº Empenho": "Número identificador do empenho.",
