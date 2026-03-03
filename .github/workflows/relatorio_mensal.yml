@@ -1,4 +1,4 @@
-name: Envio de Relatório Semanal
+name: Envio de Relatório Mensal
 
 on:
   schedule:
@@ -31,4 +31,4 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: |
-          python relatorio_semanal.py
+          python relatorio_mensal.py

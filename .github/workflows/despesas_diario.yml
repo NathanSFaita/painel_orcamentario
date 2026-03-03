@@ -55,7 +55,7 @@ jobs:
 
       - name: Commit e push (base + rastro + versão)
         run: |
-          git add base_despesas base_empenhos version.txt
+          git add base_despesas base_empenhos relatorios version.txt
           git commit -m "Atualização automática diária da base" || echo "Nada para commitar"
           git pull --rebase -X theirs origin main
           git push origin main
