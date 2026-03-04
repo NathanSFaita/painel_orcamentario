@@ -137,15 +137,19 @@ def layout_filtros_padrao(prefixo):
                                     end_date_placeholder_text="Fim",
                                     style={"zIndex": 1013, "width": "100%", "position": "relative"}
                                 )
-                            ], md=3),
+                            ], md=2),
                             dbc.Col([
                                 criar_label_com_tooltip("Credor", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-credor", multi=True, closeOnSelect=False, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1014})], md=3),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1014})], md=2),
+                            dbc.Col([
+                                criar_label_com_tooltip("Item de Despesa", prefixo),
+                                dcc.Dropdown(id=f"{prefixo}-filtro-item", multi=True, closeOnSelect=False, optionHeight=75,
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1015})], md=2),
                             dbc.Col([
                                 criar_label_com_tooltip("Objeto do Empenho", prefixo),
                                 dcc.Dropdown(id=f"{prefixo}-filtro-objeto", multi=True, closeOnSelect=False, clearable=True, optionHeight=75,
-                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1015})], md=3),
+                                             style={"maxHeight": "45px", "overflowY": "visible", "zIndex": 1016})], md=3),
                         ], className="mb-4 g-1", justify="center"),
                     ] if prefixo == 'emp' else []
                 )
