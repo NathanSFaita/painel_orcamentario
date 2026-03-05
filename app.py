@@ -13,6 +13,14 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 app._favicon = "pmsp_logo.png"
 server = app.server
 
+@server.route('/health')
+def health_check():
+    """
+    Endpoint leve para monitoramento de atividade (UptimeRobot).
+    Retorna uma resposta simples para manter o servidor ativo sem carregar o app Dash.
+    """
+    return "OK", 200
+
 app.layout = html.Div([
     dcc.Location(id="url", refresh=False),
     
@@ -34,6 +42,8 @@ def render_page(pathname):
         return layout_empenhos()
     elif pathname == "/sobre":
         return layout_sobre()
+    elif pathname == "/health":
+        return html.Div("OK") # Retorna uma página simples para o health check
     return layout_execucao()
 
 # Registra os callbacks de todas as páginas
