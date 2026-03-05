@@ -52,6 +52,7 @@ DE_PARA_INDICES_EMPENHOS = {
     "txDescricaoFonteRecurso": "Vinculação",
     "txDescricaoItemDespesa": "Item de Despesa",
     "fonte_descricao": "Fonte (Descrição)",
+    "situacao_empenho": "Situação do Empenho",
     "txtRazaoSocial": "Credor",
     "anexo_descricaoAnexo": "Objeto do Empenho"
 }
@@ -114,6 +115,7 @@ descrição_cards = {
     "Vinculação": "Indica se a despesa possui ou não alguma vinculação específica (Orçamento Cidadão, Emendas etc.).",
     "Fonte (Descrição)": "Descrição detalhada da fonte de recurso, incluindo código e nome.",
     "Item de Despesa": "Detalhamento do material ou serviço adquirido.",
+    "Situação do Empenho": "Status do empenho baseado na relação entre valor total, anulado e líquido.",
     "Credor": "Nome do fornecedor ou prestador de serviço do empenho.",
     "Data do Empenho": "Data em que o empenho foi emitido.",
     "Nº Empenho": "Número identificador do empenho.",

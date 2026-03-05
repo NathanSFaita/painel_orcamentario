@@ -15,6 +15,34 @@ from gerar_pdf import criar_relatorio_empenho_pdf
 # Mapa completo de colunas disponíveis para seleção
 MAPA_COLUNAS_EMPENHOS = {**DE_PARA_INDICES_EMPENHOS, **DE_PARA_EMPENHOS}
 
+def calcular_situacao_empenho(row):
+    """
+    Calcula a situação do empenho com base nos valores.
+    Esta é a estrutura que você pode personalizar.
+    """
+    # Garante que os valores sejam numéricos, tratando nulos como 0
+    total = pd.to_numeric(row.get('valTotalEmpenhado', 0), errors='coerce')
+    anulado = pd.to_numeric(row.get('valAnuladoEmpenho', 0), errors='coerce')
+    liquido = pd.to_numeric(row.get('valEmpenhadoLiquido', 0), errors='coerce')
+
+    # Lida com casos onde a conversão falha
+    total = total if pd.notna(total) else 0
+    anulado = anulado if pd.notna(anulado) else 0
+    liquido = liquido if pd.notna(liquido) else 0
+
+    # Lógica de verificação
+    if liquido == 0 and anulado > 0:
+        return "Empenho Anulado"
+    elif anulado > 0 and liquido > 0:
+        return "Parcialmente Anulado"
+    elif liquido == total and anulado == 0:
+        return "Empenho Normal"
+    elif total == 0 and liquido == 0:
+        return "Nota de Reserva"
+    else:
+        # Caso padrão ou para verificação manual
+        return "Verificar"
+
 def layout_empenhos():
     return dbc.Container([
         cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "💰 Consulta de Empenhos"),
@@ -129,6 +157,9 @@ def registrar_callbacks_empenhos(app):
         df = carrega_base("empenhos", ano, None)
         if df.empty: return {}
         
+        # Adiciona a coluna calculada para gerar as opções do filtro
+        df['situacao_empenho'] = df.apply(calcular_situacao_empenho, axis=1)
+        
         def opts(col): 
             if col not in df.columns: return []
             return [{"label": str(v), "value": v} for v in sorted(df[col].dropna().unique())]
@@ -143,34 +174,35 @@ def registrar_callbacks_empenhos(app):
             "descricao": opts_todos("politicas_para"),
             "filtro-empenho": opts("codEmpenho"), "filtro-processo": opts("codProcesso"),
             "filtro-credor": opts("txtRazaoSocial"), "filtro-objeto": opts("anexo_descricaoAnexo"),
-            "filtro-item": opts("txDescricaoItemDespesa")
+            "filtro-item": opts("txDescricaoItemDespesa"),
+            "filtro-situacao": opts_todos("situacao_empenho")
         }
 
     # 2. Atualiza Dropdowns com Search Value
     @app.callback(
         [Output(f"emp-{col}", "options") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
                                                      "vinculacao", "fonte", "despesa", "descricao", "fonte-descricao", "filtro-empenho", "filtro-processo"]] + 
-        [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options"), Output("emp-filtro-item", "options")],
+        [Output("emp-filtro-credor", "options"), Output("emp-filtro-objeto", "options"), Output("emp-filtro-item", "options"), Output("emp-filtro-situacao", "options")],
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
-        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"), Input("emp-filtro-item", "value"),
+        Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"), Input("emp-filtro-item", "value"), Input("emp-filtro-situacao", "value"),
         [Input(f"emp-{col}", "search_value") for col in ["orgao", "coordenacao", "acao", "projeto", "elemento", 
                                                      "vinculacao", "fonte", "despesa", "descricao", "fonte-descricao", "filtro-empenho", "filtro-processo"]] + 
-        [Input("emp-filtro-credor", "search_value"), Input("emp-filtro-objeto", "search_value"), Input("emp-filtro-item", "search_value")]
+        [Input("emp-filtro-credor", "search_value"), Input("emp-filtro-objeto", "search_value"), Input("emp-filtro-item", "search_value"), Input("emp-filtro-situacao", "search_value")]
     )
-    def atualiza_dropdowns_emp(store, f_empenho, f_processo, f_credor, f_objeto, f_item, *search_values):
-        if not store: return [[]] * 15
+    def atualiza_dropdowns_emp(store, f_empenho, f_processo, f_credor, f_objeto, f_item, f_situacao, *search_values):
+        if not store: return [[]] * 16
         
         ano = store.get("ano")
         df = carrega_base("empenhos", ano, None)
-        if df.empty: return [[]] * 15
+        if df.empty: return [[]] * 16
 
         # Converte data se necessário (para filtro de data)
         if "datEmpenho" in df.columns:
             df["datEmpenho"] = pd.to_datetime(df["datEmpenho"], dayfirst=True, errors='coerce')
         
         keys = ["orgao", "coordenacao", "acao", "projeto", "elemento", "vinculacao", "fonte", "despesa", "descricao",
-                "fonte-descricao", "filtro-empenho", "filtro-processo", "filtro-credor", "filtro-objeto", "filtro-item"]
+                "fonte-descricao", "filtro-empenho", "filtro-processo", "filtro-credor", "filtro-objeto", "filtro-item", "filtro-situacao"]
         
         mapa_cols = {
             "orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
@@ -178,14 +210,18 @@ def registrar_callbacks_empenhos(app):
             "fonte": "txDescricaoFonteRecurso", "despesa": "codDespesa", "descricao": "politicas_para",
             "filtro-empenho": "codEmpenho", "filtro-processo": "codProcesso",
             "filtro-credor": "txtRazaoSocial", "filtro-objeto": "anexo_descricaoAnexo",
-            "filtro-item": "txDescricaoItemDespesa"
+            "filtro-item": "txDescricaoItemDespesa",
+            "filtro-situacao": "situacao_empenho"
         }
+
+        # Adiciona a coluna calculada ao dataframe para a lógica de filtragem
+        df['situacao_empenho'] = df.apply(calcular_situacao_empenho, axis=1)
 
         # Dicionário com os valores atuais de cada filtro (Global + Local)
         valores_atuais = {
             "filtro-empenho": f_empenho, "filtro-processo": f_processo,
             "filtro-credor": f_credor, "filtro-objeto": f_objeto,
-            "filtro-item": f_item
+            "filtro-item": f_item, "filtro-situacao": f_situacao
         }
         # Adiciona os globais do store
         for k in keys[:10]: # As 10 primeiras chaves são globais
@@ -334,10 +370,10 @@ def registrar_callbacks_empenhos(app):
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
         Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
-        Input("emp-filtro-item", "value"),
+        Input("emp-filtro-item", "value"), Input("emp-filtro-situacao", "value"),
         Input("emp-checklist-colunas", "value")
     )
-    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, f_item, cols_selecionadas):
+    def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, f_item, f_situacao, cols_selecionadas):
         if not store or not store.get("ano"):
             return (no_update,) * 4
         
@@ -346,6 +382,9 @@ def registrar_callbacks_empenhos(app):
         if df.empty:
             card_atualizacao = gera_card_atualizacao("-")
             return card_atualizacao, html.Div("Sem dados."), [], []
+
+        # Adiciona a coluna calculada para filtragem e exibição
+        df['situacao_empenho'] = df.apply(calcular_situacao_empenho, axis=1)
 
         # Converte para datetime para permitir ordenação e filtragem corretas
         if "datEmpenho" in df.columns:
@@ -377,6 +416,7 @@ def registrar_callbacks_empenhos(app):
         if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
         if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
         if f_item: df = df[df["txDescricaoItemDespesa"].isin(f_item)]
+        if f_situacao: df = df[df["situacao_empenho"].isin(f_situacao)]
 
         # 1. Cards
         data_ext = "-"
@@ -452,10 +492,11 @@ def registrar_callbacks_empenhos(app):
         State("emp-filtro-credor", "value"),
         State("emp-filtro-objeto", "value"),
         State("emp-filtro-item", "value"),
+        State("emp-filtro-situacao", "value"),
         State("emp-checklist-colunas", "value"),
         prevent_initial_call=True
     )
-    def download_pdf_report(trigger, store, f_empenho, f_processo, f_credor, f_objeto, f_item, cols_selecionadas):
+    def download_pdf_report(trigger, store, f_empenho, f_processo, f_credor, f_objeto, f_item, f_situacao, cols_selecionadas):
         """Callback 'worker' que gera o PDF e reabilita o botão no final."""
         if not trigger or not store or not store.get("ano"):
             return no_update, False
@@ -463,6 +504,9 @@ def registrar_callbacks_empenhos(app):
         # --- Replicar a lógica de filtragem ---
         df = carrega_base("empenhos", store["ano"], None)
         if df.empty: return no_update, False
+
+        # Adiciona a coluna calculada para filtragem
+        df['situacao_empenho'] = df.apply(calcular_situacao_empenho, axis=1)
 
         mapa = {"orgao": "orgao", "coordenacao": "coordenacao", "acao": "acao_programatica", 
                 "projeto": "codProjetoAtividade", "elemento": "nome_elemento", "vinculacao": "codVinculacaoRecurso", 
@@ -485,6 +529,7 @@ def registrar_callbacks_empenhos(app):
         if f_credor: df = df[df["txtRazaoSocial"].isin(f_credor)]
         if f_objeto: df = df[df["anexo_descricaoAnexo"].isin(f_objeto)]
         if f_item: df = df[df["txDescricaoItemDespesa"].isin(f_item)]
+        if f_situacao: df = df[df["situacao_empenho"].isin(f_situacao)]
         
         # --- Obter dados para o relatório ---
         totais = {c: df[c].sum() for c in DE_PARA_EMPENHOS.keys() if c in df.columns}
@@ -517,9 +562,9 @@ def registrar_callbacks_empenhos(app):
     @app.callback(
         Output("emp-filtro-empenho", "value"), Output("emp-filtro-processo", "value"),
         Output("emp-filtro-credor", "value"), Output("emp-filtro-objeto", "value"),
-        Output("emp-filtro-item", "value"),
+        Output("emp-filtro-item", "value"), Output("emp-filtro-situacao", "value"),
         Input("emp-btn-limpar", "n_clicks"),
         prevent_initial_call=True
     )
     def limpar_filtros_locais(n_clicks):
-        return [], [], [], [], []
+        return [], [], [], [], [], []
