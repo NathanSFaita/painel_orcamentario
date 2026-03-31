@@ -1,0 +1,17 @@
+/* Força o menu do dropdown a abrir sempre para baixo, independente da posição na tela */
+.Select-menu-outer, div[class$="-menu"] {
+    top: 100% !important;
+    bottom: auto !important;
+    display: block !important;
+}
+
+/* Garante que o dropdown ativo fique sobreposto a qualquer outro elemento */
+.dash-dropdown:focus-within, .Select.is-open, .Select.is-focused {
+    z-index: 9999 !important;
+    position: relative;
+}
+
+/* Ajuste de profundidade para o calendário do DatePicker */
+.DateRangePicker_picker {
+    z-index: 10000 !important;
+}

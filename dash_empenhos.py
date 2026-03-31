@@ -55,7 +55,9 @@ def layout_empenhos():
         dcc.Store(id="trigger-pdf-empenho"),
         
         dbc.Row([
-            dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/", className="w-100 mt-4", 
+            dbc.Col([dbc.Button("🏠 Início", href="/", className="w-100 mt-4", 
+                                style={"whiteSpace": "normal", "backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=2),            
+            dbc.Col([dbc.Button("⬅️ Voltar para Execução", href="/execucao", className="w-100 mt-4", 
                                 style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="emp-btn-colunas", className="w-100 mt-4", 
                                 style={"backgroundColor": "#0dcaf0", "borderColor": "#0dcaf0", "color": "black"})], md=2),
@@ -100,27 +102,8 @@ def layout_empenhos():
             style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Calibri, sans-serif"},
             style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Calibri, sans-serif", "whiteSpace": "normal", "height": "auto"},
             style_cell_conditional=[
-                {
-                    'if': {'column_id': 'anexo_descricaoAnexo'},
-                    'width': '400px',
-                    'maxWidth': '400px',
-                    'minWidth': '200px'
-                },
-                {
-                    'if': {'column_id': 'codProcesso'},
-                    'whiteSpace': 'nowrap'
-                }
-            ],
-            style_data_conditional=[
-                {
-                    'if': {'filter_query': '{valEmpenhadoLiquido} > 1000000'},
-                    'backgroundColor': '#ffdddd', # Vermelho claro
-                    'fontWeight': 'bold'
-                },
-                {
-                    'if': {'filter_query': '{valEmpenhadoLiquido} > 100000 && {valEmpenhadoLiquido} <= 1000000'},
-                    'backgroundColor': '#fff3cd', # Amarelo claro
-                }
+                {'if': {'column_id': 'anexo_descricaoAnexo'}, 'width': '400px', 'maxWidth': '400px', 'minWidth': '200px'},
+                {'if': {'column_id': 'codProcesso'}, 'whiteSpace': 'nowrap'}
             ],
             page_size=25, sort_action="native", #filter_action="native"
         ),
@@ -367,6 +350,8 @@ def registrar_callbacks_empenhos(app):
         Output("emp-info-atualizacao", "children"),
         Output("emp-cards-container", "children"),
         Output("emp-tabela", "data"), Output("emp-tabela", "columns"),
+        Output("emp-tabela", "style_data_conditional"),
+        Output("emp-tabela", "page_current"), # Resetar paginação
         Input("store_filtros", "data"),
         Input("emp-filtro-empenho", "value"), Input("emp-filtro-processo", "value"),
         Input("emp-filtro-credor", "value"), Input("emp-filtro-objeto", "value"),
@@ -374,14 +359,12 @@ def registrar_callbacks_empenhos(app):
         Input("emp-checklist-colunas", "value")
     )
     def atualiza_dash_emp(store, f_empenho, f_processo, f_credor, f_objeto, f_item, f_situacao, cols_selecionadas):
-        if not store or not store.get("ano"):
-            return (no_update,) * 4
+        if not store or not store.get("ano"): return (no_update,) * 6
         
         df = carrega_base("empenhos", store["ano"], None)
 
         if df.empty:
-            card_atualizacao = gera_card_atualizacao("-")
-            return card_atualizacao, html.Div("Sem dados."), [], []
+            return gera_card_atualizacao("-"), html.Div("Sem dados."), [], [], [], 0
 
         # Adiciona a coluna calculada para filtragem e exibição
         df['situacao_empenho'] = df.apply(calcular_situacao_empenho, axis=1)
@@ -431,6 +414,10 @@ def registrar_callbacks_empenhos(app):
         totais = {c: df[c].sum() for c in DE_PARA_EMPENHOS.keys() if c in df.columns}
         cards = monta_cards_resumo(totais, DE_PARA_EMPENHOS)
 
+        # Se nenhuma coluna for selecionada, exibe os cards mas não a tabela para evitar erro.
+        if not cols_selecionadas:
+            return card_atualizacao, cards, [], [], [], 0
+
         # 2. Tabela
         pivot = gera_tabela_pivot(df, "empenhos")
         
@@ -441,7 +428,13 @@ def registrar_callbacks_empenhos(app):
 
         # Filtra as colunas do DataFrame com base na seleção do usuário
         if cols_selecionadas:
-            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            # Ordena as colunas com base na definição do MAPA_COLUNAS
+            ordem_preferencial = list(MAPA_COLUNAS_EMPENHOS.keys())
+            cols_to_keep = [c for c in ordem_preferencial if c in cols_selecionadas and c in pivot.columns]
+            cols_to_keep += [c for c in cols_selecionadas if c in pivot.columns and c not in ordem_preferencial]
+
+            if not cols_to_keep:
+                return card_atualizacao, cards, [], [], [], 0
             pivot = pivot[cols_to_keep]
 
         cols_table = []
@@ -467,8 +460,21 @@ def registrar_callbacks_empenhos(app):
                 tipo = "text"
                 fmt = None
             cols_table.append({"name": nome, "id": c, "type": tipo, "format": fmt})
-
-        return card_atualizacao, cards, pivot.to_dict("records"), cols_table
+        
+        style_conditional = []
+        if "valEmpenhadoLiquido" in cols_to_keep:
+            style_conditional.extend([
+                {
+                    'if': {'filter_query': '{valEmpenhadoLiquido} > 1000000'},
+                    'backgroundColor': '#ffdddd', # Vermelho claro
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{valEmpenhadoLiquido} > 100000 && {valEmpenhadoLiquido} <= 1000000'},
+                    'backgroundColor': '#fff3cd', # Amarelo claro
+                }
+            ])
+        return card_atualizacao, cards, pivot.to_dict("records"), cols_table, style_conditional, 0
 
     @app.callback(
         Output("trigger-pdf-empenho", "data"),

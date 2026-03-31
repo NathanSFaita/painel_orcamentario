@@ -7,6 +7,7 @@ import pytz
 import os
 import sys
 from relatorio_mensal import gerar_pdf_resumo
+from utils import tratar_dotacao_rigoroso
 
 
 def main():
@@ -255,6 +256,7 @@ def main():
         df_despesas["subfuncao"] = subfuncao
         df_despesas["programa"] = programa
         df_despesas["projeto_atividade"] = proj_ativ
+        df_despesas["projeto_atividade"] = str(proj_ativ)
         df_despesas["coordenação"] = coordenacao_val
         df_despesas["politicas_para"] = politicas_para_val
         df_despesas["acao_programatica"] = acao_val
@@ -294,12 +296,29 @@ def main():
         else:
             df_despesas["ds_fonte"] = df_fonte["txtDescricaoFonteRecurso"].iloc[0]
 
+        # Cria a coluna de dotação completa para servir como chave
+        df_despesas["dotacao_completa"] = (
+            str(orgao) + "." +
+            str(uo) + "." +
+            str(funcao) + "." +
+            str(subfuncao) + "." +
+            str(programa) + "." +
+            str(proj_ativ) + "." +
+            str(elemento_despesa) + "." +
+            str(fonte_recursos)
+        )
+
 
         df_final = pd.concat([df_final, df_despesas], ignore_index=True)
         time.sleep(0.2)  # Pequena pausa para evitar sobrecarga na API
 
+    # Garante que a dotação completa esteja no formato padrão
+    if not df_final.empty and 'dotacao_completa' in df_final.columns:
+        df_final['dotacao_completa'] = df_final['dotacao_completa'].apply(tratar_dotacao_rigoroso)
+
     ordem_colunas =     [
         "orgao",
+        "dotacao_completa",
         "cd_orgao",
         "uo",
         "funcao",

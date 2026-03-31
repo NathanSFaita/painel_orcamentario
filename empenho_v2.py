@@ -229,6 +229,9 @@ if not df_parcial.empty:
 
     mask_emenda = df_parcial["codProjetoAtividade"] >= 8000
     df_parcial.loc[mask_emenda, ["coordenacao", "politicas_para", "acao_programatica"]] = "Emenda"
+    
+    # Converte para string após a lógica numérica para garantir consistência no display e filtros
+    df_parcial["codProjetoAtividade"] = df_parcial["codProjetoAtividade"].astype(str).replace('<NA>', 'Não informado')
 
     for col in ["orgao", "coordenacao", "politicas_para", "acao_programatica"]:
         df_parcial[col] = df_parcial[col].fillna("N?o encontrado")

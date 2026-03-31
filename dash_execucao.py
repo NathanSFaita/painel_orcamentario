@@ -16,7 +16,7 @@ MAPA_COLUNAS_EXECUCAO = {**DE_PARA_INDICES_EXECUCAO, **DE_PARA_EXECUCAO}
 
 def layout_execucao():
     return dbc.Container([
-        cabecalho_padrao("📊 Quadro de Detalhamento de Despesas", "📈 Execução Orçamentária"),
+        cabecalho_padrao("Execução Orçamentária", "📊 Quadro de Detalhamento de Despesas"),
         
         html.Div(id="exe-cards-container", className="mb-4"),
         # Store para guardar as opções dos filtros e evitar recargas desnecessárias
@@ -26,6 +26,8 @@ def layout_execucao():
         dcc.Store(id="trigger-pdf-resumo"),
         
         dbc.Row([
+            dbc.Col([dbc.Button("🏠 Início", href="/", className="w-100 mt-4", 
+                                style={"whiteSpace": "normal", "backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"})], md=2),
             dbc.Col([dbc.Button("Ir para Empenhos ➡️", href="/empenhos", className="w-100 mt-4", 
                                 style={"whiteSpace": "normal", "backgroundColor": "#0d6efd", "borderColor": "#0d6efd", "color": "white"})], md=2),
             dbc.Col([dbc.Button("🛠️ Colunas", id="exe-btn-colunas", className="w-100 mt-4", 
@@ -37,12 +39,6 @@ def layout_execucao():
 
         layout_filtros_padrao("exe"),
         
-        dbc.Row([
-            # dbc.Col([html.Label("Mês:", className="fw-bold"), dcc.Dropdown(id="exe-mes", clearable=False)], md=1),
-            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", className="w-100 mt-4", style={"whiteSpace": "normal", "backgroundColor": "#ffc107", "borderColor": "#ffc107", "color": "black"})], md=2),
-            
-        ], className="mb-4", justify="center"),
-
         # MODAL DE SELEÇÃO DE COLUNAS
         dbc.Modal([
             dbc.ModalHeader(dbc.ModalTitle("Selecionar Colunas para Exibição")),
@@ -67,7 +63,6 @@ def layout_execucao():
         html.H5("Detalhamento", className="fw-bold"),
         dt.DataTable(
             id="exe-tabela",
-            style_table={"overflowX": "auto"},
             style_header={"backgroundColor": "#1f77b4", "color": "white", "fontWeight": "bold", "fontSize": "14px",  "fontFamily": "Arial, sans-serif"},
             style_cell={"textAlign": "left", "minWidth": "100px", "fontSize": "12px", "fontFamily": "Arial, sans-serif"},
             page_size=25, sort_action="native", #filter_action="native"
@@ -82,6 +77,9 @@ def layout_execucao():
         dbc.Button("📄 Download Relatório Resumo", id="exe-btn-download-resumo", className="mt-3", 
                    style={"marginLeft": "10px", "backgroundColor": "#6f42c1", "borderColor": "#6f42c1", "color": "white"}),
         html.Hr(),
+        dbc.Row([
+            dbc.Col([dbc.Button("🗑️ Limpar Filtros", id="exe-btn-limpar", className="w-100 mt-4", style={"whiteSpace": "normal", "backgroundColor": "#ffc107", "borderColor": "#ffc107", "color": "black"})], md=2),
+        ], className="mb-4", justify="center"),
         html.Div(id="exe-info-atualizacao")
         ], fluid=True, style={"backgroundColor": "#f8f9fa", "padding": "20px"})
 
@@ -319,18 +317,19 @@ def registrar_callbacks_execucao(app):
         Output("exe-info-atualizacao", "children"),
         Output("exe-cards-container", "children"),
         Output("exe-tabela", "data"), Output("exe-tabela", "columns"),
+        Output("exe-tabela", "page_current"), # Resetar paginação
         Input("store_filtros", "data"),
         Input("exe-checklist-colunas", "value")
     )
     def atualiza_dashboard_exe(store, cols_selecionadas):
         if not store or not store.get("mes"):
-            return no_update, [], [], []
+            return no_update, [], [], [], no_update
 
         df = carrega_base("execucao", store["ano"], store["mes"])
 
         if df.empty:
             card_atualizacao = gera_card_atualizacao("-")
-            return card_atualizacao, html.Div("Sem dados para o período."), [], []
+            return card_atualizacao, html.Div("Sem dados para o período."), [], [], 0
             
         # =========================================
         # MAPA DE FILTROS - BASEADO NA SUA LISTA
@@ -359,8 +358,14 @@ def registrar_callbacks_execucao(app):
 
         # Cálculo de Totais
         # Soma apenas as colunas numéricas que existem no DataFrame
-        cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c != "Saldo de Dotação"]
+        cols_numericas = [c for c in DE_PARA_EXECUCAO.keys() if c in df.columns and c not in ["Saldo de Dotação", "valOrcadoAtualizado"]]
         totais = {c: df[c].sum() for c in cols_numericas}
+
+        # Para 'Orçado Atualizado', somamos o valor único de cada dotação para não inflar o total em caso de duplicatas na base.
+        if 'valOrcadoAtualizado' in df.columns and 'dotacao_completa' in df.columns:
+            totais['valOrcadoAtualizado'] = df.drop_duplicates(subset=['dotacao_completa'])['valOrcadoAtualizado'].sum()
+        elif 'valOrcadoAtualizado' in df.columns:
+            totais['valOrcadoAtualizado'] = df['valOrcadoAtualizado'].sum() # Fallback se não houver dotação
         
         # Calcula Saldo de Dotação e Saldo de Reserva: 
         disponivel = totais.get("valDisponivel", 0)
@@ -381,6 +386,11 @@ def registrar_callbacks_execucao(app):
 
         # Gera componentes
         cards = monta_cards_resumo(totais, DE_PARA_EXECUCAO)
+
+        # Se nenhuma coluna for selecionada, exibe os cards mas não a tabela para evitar erro.
+        if not cols_selecionadas:
+            return card_atualizacao, cards, [], [], 0
+            
         pivot = gera_tabela_pivot(df, "execucao")
 
         # Adiciona colunas calculadas na tabela (Saldo de Dotação e Saldo de Reserva)
@@ -393,40 +403,40 @@ def registrar_callbacks_execucao(app):
 
         # Filtra as colunas do DataFrame com base na seleção do usuário
         if cols_selecionadas:
-            cols_to_keep = [c for c in pivot.columns if c in cols_selecionadas]
+            # Ordena as colunas com base na definição do MAPA_COLUNAS
+            ordem_preferencial = list(MAPA_COLUNAS_EXECUCAO.keys())
+            cols_to_keep = [c for c in ordem_preferencial if c in cols_selecionadas and c in pivot.columns]
+            cols_to_keep += [c for c in cols_selecionadas if c in pivot.columns and c not in ordem_preferencial]
+            
+            if not cols_to_keep:
+                return card_atualizacao, cards, [], [], 0
             pivot = pivot[cols_to_keep]
         
         cols_table = []
-        
-        # 1. Colunas de Texto (Índices) - Segue a ordem do dicionário
-        for c in DE_PARA_INDICES_EXECUCAO:
-            if c in pivot.columns:
-                cols_table.append({
-                    "name": DE_PARA_INDICES_EXECUCAO[c], 
-                    "id": c, 
-                    "type": "text", 
-                    "format": None
-                })
+        for c in pivot.columns:
+            if c in DE_PARA_EXECUCAO:
+                nome = DE_PARA_EXECUCAO[c]
+                tipo = "numeric"
+                fmt = Format(
+                    scheme=Scheme.fixed,
+                    precision=2,
+                    group=Group.yes,
+                    group_delimiter='.',
+                    decimal_delimiter=',',
+                    symbol=Symbol.yes,
+                    symbol_prefix='R$ '
+                )
+            elif c in DE_PARA_INDICES_EXECUCAO:
+                nome = DE_PARA_INDICES_EXECUCAO.get(c, c)
+                tipo = "text"
+                fmt = None
+            else:
+                nome = c
+                tipo = "text"
+                fmt = None
+            cols_table.append({"name": nome, "id": c, "type": tipo, "format": fmt})
 
-        # 2. Colunas Numéricas (Valores) - Segue a ordem do dicionário
-        for c in DE_PARA_EXECUCAO:
-            if c in pivot.columns:
-                cols_table.append({
-                    "name": DE_PARA_EXECUCAO[c], 
-                    "id": c, 
-                    "type": "numeric", 
-                    "format": Format(
-                        scheme=Scheme.fixed, 
-                        precision=2, 
-                        group=Group.yes, 
-                        group_delimiter='.', 
-                        decimal_delimiter=',', 
-                        symbol=Symbol.yes, 
-                        symbol_prefix='R$ '
-                    )
-                })
-
-        return card_atualizacao, cards, pivot.to_dict("records"), cols_table
+        return card_atualizacao, cards, pivot.to_dict("records"), cols_table, 0
 
     # --- 6. Callbacks para Download de PDF Detalhado (com estado de 'disabled') ---
     @app.callback(

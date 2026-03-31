@@ -45,8 +45,7 @@ def layout_sobre():
         
         dbc.Row([
             dbc.Col([
-                dbc.Button("⬅️ Voltar para Execução", href="/", className="mb-4 me-2", style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"}),
-                dbc.Button("Ir para Empenhos ➡️", href="/empenhos", className="mb-4", style={"backgroundColor": "#0d6efd", "borderColor": "#0d6efd", "color": "white"}),
+                dbc.Button("🏠 Início", href="/", className="mb-4 me-2", style={"backgroundColor": "#6c757d", "borderColor": "#6c757d", "color": "white"}),
             ], width=12, className="d-flex justify-content-center gap-2")
         ]),
 
