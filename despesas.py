@@ -41,7 +41,7 @@ def main():
         "Content-Type": "application/json"
     }
 
-    URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
+    URL_ORC = (f"https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/seplan/arquivos/Exercicio_{ano}/basedadosexecucao_{mes}{ano[2:]}.xlsx")
     # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2023/basedadosexecucao_1223.xlsx"
     # ano = "2023"
     # mes = "12"
