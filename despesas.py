@@ -1,122 +1,367 @@
 import requests
 import pandas as pd
+from io import BytesIO
 from itertools import product
 import time
 from datetime import datetime, timedelta, timezone
 import pytz
 import os
 import sys
+
 from relatorio_mensal import gerar_pdf_resumo
 from utils import tratar_dotacao_rigoroso
 
 
+def baixar_excel_com_retry(url, tentativas=5, espera=10):
+    """
+    Baixa um arquivo Excel por HTTP com tentativas automáticas
+    para erros temporários do servidor.
+    """
+
+    headers_download = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0 Safari/537.36"
+        )
+    }
+
+    for tentativa in range(1, tentativas + 1):
+
+        print(
+            f"Baixando arquivo de orçamento "
+            f"(tentativa {tentativa}/{tentativas})..."
+        )
+
+        try:
+            response = requests.get(
+                url,
+                headers=headers_download,
+                timeout=120
+            )
+
+            print(
+                f"Resposta do servidor: "
+                f"{response.status_code}"
+            )
+
+            if response.status_code == 200:
+
+                if not response.content:
+                    raise RuntimeError(
+                        "O servidor respondeu 200, "
+                        "mas o arquivo está vazio."
+                    )
+
+                print(
+                    f"Arquivo baixado: "
+                    f"{len(response.content) / 1024 / 1024:.2f} MB"
+                )
+
+                return pd.read_excel(
+                    BytesIO(response.content)
+                )
+
+            # Erros temporários
+            if response.status_code in (502, 503, 504):
+
+                if tentativa < tentativas:
+                    print(
+                        f"Erro temporário HTTP "
+                        f"{response.status_code}. "
+                        f"Tentando novamente em {espera}s..."
+                    )
+
+                    time.sleep(espera)
+                    continue
+
+                raise RuntimeError(
+                    f"Servidor retornou HTTP "
+                    f"{response.status_code} após "
+                    f"{tentativas} tentativas."
+                )
+
+            # Outros erros HTTP
+            response.raise_for_status()
+
+        except requests.RequestException as e:
+
+            print(
+                f"Erro de conexão ao baixar "
+                f"o arquivo: {e}"
+            )
+
+            if tentativa < tentativas:
+
+                print(
+                    f"Tentando novamente em {espera}s..."
+                )
+
+                time.sleep(espera)
+
+            else:
+                raise
+
+    raise RuntimeError(
+        "Falha inesperada ao baixar o arquivo."
+    )
+
+
 def main():
-    BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-    BASE_DESPESAS = os.path.join(BASE_PATH, "base_despesas")
+
+    BASE_PATH = os.path.dirname(
+        os.path.abspath(__file__)
+    )
+
+    BASE_DESPESAS = os.path.join(
+        BASE_PATH,
+        "base_despesas"
+    )
+
     print("BASE_DESPESAS:", BASE_DESPESAS)
-    
-    # Defina o timezone de Brasília
-    tz_brasilia = pytz.timezone('America/Sao_Paulo')
-    
+
+    tz_brasilia = pytz.timezone(
+        "America/Sao_Paulo"
+    )
+
     inicio = time.time()
-    horario_inicio = datetime.now(tz=tz_brasilia).strftime("%H:%M:%S")
-    print("Início da execução:", horario_inicio)
 
-    dt_inicio = datetime.fromtimestamp(inicio, tz=tz_brasilia)
+    horario_inicio = datetime.now(
+        tz=tz_brasilia
+    ).strftime("%H:%M:%S")
+
+    print(
+        "Início da execução:",
+        horario_inicio
+    )
+
+    dt_inicio = datetime.now(
+        tz=tz_brasilia
+    )
+
     ano = str(dt_inicio.year)
-    mes = str(dt_inicio.month)
-    if dt_inicio.month < 10:
-       mes = "0" + mes  # Adiciona zero à esquerda se o mês for menor que 10   
-    # Configurações iniciais
+
+    mes = str(dt_inicio.month).zfill(2)
+
     TOKEN = os.getenv("API_TOKEN_SF")
-    # TOKEN = ""
-    print("TOKEN carregado?", bool(TOKEN))
-    print("Primeiros 6 chars do token:", TOKEN[:6] if TOKEN else "NULO")
 
-    BASE_URL = "https://gateway.apilib.prefeitura.sp.gov.br/sf/sof/v4/"
+    print(
+        "TOKEN carregado?",
+        bool(TOKEN)
+    )
 
-    # Headers para autenticação
+    if not TOKEN:
+        raise RuntimeError(
+            "A variável de ambiente "
+            "API_TOKEN_SF não está configurada."
+        )
+
+    BASE_URL = (
+        "https://gateway.apilib.prefeitura.sp.gov.br/"
+        "sf/sof/v4"
+    )
+
     headers = {
         "Authorization": f"Bearer {TOKEN}",
         "Content-Type": "application/json"
     }
 
-    URL_ORC = (f"https://prefeitura.sp.gov.br/cidade/secretarias/upload/seplan/arquivos/Exercicio_2026/basedadosexecucao_2026.xlsx")
-    # URL_ORC = "https://orcamento.sf.prefeitura.sp.gov.br/orcamento/uploads/2023/basedadosexecucao_1223.xlsx"
-    # ano = "2023"
-    # mes = "12"
-    orgaos_list = [8, 34, 78, 90]
+    # ==========================================
+    # ARQUIVO-BASE DO ORÇAMENTO
+    # ==========================================
 
-    orcamento = pd.read_excel(URL_ORC)
-    orcamento_smdhc = orcamento[orcamento["Cd_Orgao"].isin(orgaos_list)]
-    num_linhas = orcamento_smdhc.shape[0]
-    
-    baseaux_path = os.path.dirname(__file__)
-    procv_acao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_acoes.xlsx"))
-    procv_orgao = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_orgao.xlsx"))
-    procv_elemento = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_elemento.xlsx"))
-    procv_fonte = pd.read_excel(os.path.join(baseaux_path, "dados_auxiliares", "procv_fonte.xlsx"))
+    URL_ORC = (
+        f"https://prefeitura.sp.gov.br/"
+        f"cidade/secretarias/upload/seplan/arquivos/"
+        f"Exercicio_{ano}/"
+        f"basedadosexecucao_{ano}.xlsx"
+    )
 
-    # Função para fazer requisições à API
+    print(
+        "Arquivo-base do orçamento:",
+        URL_ORC
+    )
+
+    orcamento = baixar_excel_com_retry(
+        URL_ORC
+    )
+
+    print(
+        "Arquivo de orçamento carregado."
+    )
+
+    # ==========================================
+    # FILTRO DOS ÓRGÃOS
+    # ==========================================
+
+    orgaos_list = [
+        8,
+        34,
+        78,
+        90
+    ]
+
+    orcamento_smdhc = orcamento[
+        orcamento["Cd_Orgao"].isin(
+            orgaos_list
+        )
+    ].copy()
+
+    num_linhas = (
+        orcamento_smdhc.shape[0]
+    )
+
+    print(
+        f"Linhas de orçamento da SMDHC: "
+        f"{num_linhas}"
+    )
+
+    # ==========================================
+    # ARQUIVOS AUXILIARES
+    # ==========================================
+
+    baseaux_path = os.path.dirname(
+        __file__
+    )
+
+    procv_acao = pd.read_excel(
+        os.path.join(
+            baseaux_path,
+            "dados_auxiliares",
+            "procv_acoes.xlsx"
+        )
+    )
+
+    procv_orgao = pd.read_excel(
+        os.path.join(
+            baseaux_path,
+            "dados_auxiliares",
+            "procv_orgao.xlsx"
+        )
+    )
+
+    procv_elemento = pd.read_excel(
+        os.path.join(
+            baseaux_path,
+            "dados_auxiliares",
+            "procv_elemento.xlsx"
+        )
+    )
+
+    procv_fonte = pd.read_excel(
+        os.path.join(
+            baseaux_path,
+            "dados_auxiliares",
+            "procv_fonte.xlsx"
+        )
+    )
+
+    # ==========================================
+    # API
+    # ==========================================
+
     def fazer_requisicao(endpoint, params):
+
         url = f"{BASE_URL}/{endpoint}"
+
         try:
+
             response = requests.get(
                 url,
                 params=params,
                 headers=headers,
                 timeout=60
             )
+
         except Exception as e:
-            print(f"Erro na requisição HTTP: {e}")
+
+            print(
+                f"Erro na requisição HTTP: {e}"
+            )
+
             sys.exit(1)
 
-        print(f"[{endpoint}] Status code:", response.status_code)
+        print(
+            f"[{endpoint}] Status code:",
+            response.status_code
+        )
 
         if response.status_code != 200:
-            print("Resposta não-200 da API:")
-            print(response.status_code, response.text[:1000])
+
+            print(
+                "Resposta não-200 da API:"
+            )
+
+            print(
+                response.status_code,
+                response.text[:1000]
+            )
+
             sys.exit(1)
 
-        if not response.text or response.text.strip() == "":
-            print("Resposta vazia da API")
+        if (
+            not response.text
+            or response.text.strip() == ""
+        ):
+
+            print(
+                "Resposta vazia da API"
+            )
+
             sys.exit(1)
 
         try:
-            payload = response.json()
-        except Exception:
-            print("Falha ao converter resposta em JSON")
-            print(response.text[:1000])
-            sys.exit(1)
 
-        # Verificação específica para o endpoint 'despesas'
-        # if endpoint == "despesas":
-        #     if not isinstance(payload, dict):
-        #         print("Payload inesperado para 'despesas' (não é dict). Abortando.")
-        #         print("params enviados:", params)
-        #         sys.exit(1)
-        #     lst = payload.get("lstDespesas", None)
-        #     if lst is None:
-        #         print("Campo 'lstDespesas' ausente na resposta da API para 'despesas'. Abortando.")
-        #         print("params enviados:", params)
-        #         print("resposta (parcial):", str(payload)[:1000])
-        #         sys.exit(1)
-        #     if isinstance(lst, list) and len(lst) == 0:
-        #         print("Campo 'lstDespesas' está vazio na resposta da API para 'despesas'. Abortando.")
-        #         print("params enviados:", params)
-        #         print("resposta (parcial):", str(payload)[:1000])
-        #         sys.exit(1)
+            payload = response.json()
+
+        except Exception:
+
+            print(
+                "Falha ao converter "
+                "resposta em JSON"
+            )
+
+            print(
+                response.text[:1000]
+            )
+
+            sys.exit(1)
 
         return payload
 
+    # ==========================================
+    # PROJETOS / ATIVIDADES
+    # ==========================================
+
     params_proj = {
-     "anoExercicio": "2026",
-}
-    proj_atividades = fazer_requisicao("projetosAtividades", params_proj)
-    df_proj = pd.json_normalize(proj_atividades["lstProjetosAtividades"])   
-    # Garante que a coluna de código seja numérica para comparação correta
-    if not df_proj.empty and "codProjetoAtividade" in df_proj.columns:
-        df_proj["codProjetoAtividade"] = pd.to_numeric(df_proj["codProjetoAtividade"], errors="coerce")
+        "anoExercicio": ano
+    }
+
+    proj_atividades = fazer_requisicao(
+        "projetosAtividades",
+        params_proj
+    )
+
+    df_proj = pd.json_normalize(
+        proj_atividades[
+            "lstProjetosAtividades"
+        ]
+    )
+
+    if (
+        not df_proj.empty
+        and "codProjetoAtividade"
+        in df_proj.columns
+    ):
+
+        df_proj[
+            "codProjetoAtividade"
+        ] = pd.to_numeric(
+            df_proj[
+                "codProjetoAtividade"
+            ],
+            errors="coerce"
+        )
 
     params_dp = {
         "anoDotacao": "",
